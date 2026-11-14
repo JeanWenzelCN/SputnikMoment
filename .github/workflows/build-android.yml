@@ -57,6 +57,14 @@ jobs:
             ls -la "$ANDROID_HOME"
           } 2>&1 | tee ci/sdk.log
 
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('export_presets.cfg') }}-v1
+
       - name: Cache Godot toolchain
         uses: actions/cache@v4
         with:
@@ -144,6 +152,15 @@ jobs:
         run: |
           mkdir -p ci
           .tools/godot --headless --path . --import 2>&1 | tee ci/import.log
+
+      - name: Extract Android build template
+        run: |
+          TPL_DIR="$HOME/.local/share/godot/export_templates/${GODOT_TPL_DIR}"
+          rm -rf android
+          mkdir -p android/build
+          unzip -q "$TPL_DIR/android_source.zip" -d android/build
+          touch android/build/.gdignore
+          ls android/build | head -20 | tee ci/template.log
 
       - name: Smoke test (menu)
         run: |
