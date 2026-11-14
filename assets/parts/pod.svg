@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="90" height="100" viewBox="0 0 90 100">
+  <defs>
+    <linearGradient id="m" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3d4446"/>
+      <stop offset="0.14" stop-color="#8a9294"/>
+      <stop offset="0.34" stop-color="#dfe3df"/>
+      <stop offset="0.55" stop-color="#c3c9c6"/>
+      <stop offset="0.82" stop-color="#7d8588"/>
+      <stop offset="1" stop-color="#33393b"/>
+    </linearGradient>
+    <linearGradient id="heat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6a4630"/>
+      <stop offset="0.45" stop-color="#3c2a20"/>
+      <stop offset="1" stop-color="#241812"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 气动外形 -->
+  <path d="M45 2 C58 12 70 30 73 52 L73 96 L17 96 L17 52 C20 30 32 12 45 2 Z" fill="url(#m)" stroke="#232829" stroke-width="1.6"/>
+
+  <!-- 隔热底 -->
+  <path d="M17 76 L73 76 L73 96 L17 96 Z" fill="url(#heat)"/>
+  <line x1="17" y1="86" x2="73" y2="86" stroke="#120c08" stroke-width="1.4"/>
+
+  <!-- 舱窗 -->
+  <ellipse cx="45" cy="42" rx="13" ry="11" fill="#17323c" stroke="#0d1a1f" stroke-width="2"/>
+  <ellipse cx="45" cy="42" rx="13" ry="11" fill="none" stroke="#9aa3a4" stroke-width="1.2"/>
+  <path d="M35 37 C39 33 51 33 55 37" stroke="#4d7d8c" stroke-width="2" fill="none" opacity="0.85"/>
+  <circle cx="45" cy="42" r="2.2" fill="#2b4d59" opacity="0.8"/>
+
+  <!-- 舱门与铆钉 -->
+  <rect x="39" y="62" width="12" height="10" rx="2" fill="#5c6466" stroke="#262c2d" stroke-width="1"/>
+  <circle cx="30" cy="70" r="1.3" fill="#e9ece7"/><circle cx="60" cy="70" r="1.3" fill="#e9ece7"/>
+  <circle cx="28" cy="86" r="1.3" fill="#e9ece7"/><circle cx="62" cy="86" r="1.3" fill="#e9ece7"/>
+
+  <!-- 顶部天线 -->
+  <line x1="45" y1="2" x2="45" y2="-2" stroke="#b9c0bf" stroke-width="1.6"/>
+  <circle cx="45" cy="0" r="1.6" fill="#c23b2c"/>
+
+  <!-- 高光 -->
+  <rect x="34" y="14" width="4" height="40" rx="2" fill="#ffffff" opacity="0.22"/>
+</svg>

@@ -35,6 +35,7 @@ var status_text := ""
 
 var view_scale := 6.0
 var focus := Vector2.ZERO
+var ship_height := 20.0
 
 var _orbit_timer := 0.0
 
@@ -58,7 +59,8 @@ func _ready() -> void:
 	hud.exit_requested.connect(_on_exit)
 
 	orbit_el = Orbit.elements(pos, vel)
-	view_scale = 720.0 / 120.0
+	ship_height = maxf(vehicle.total_height(), 6.0)
+	view_scale = 720.0 / (ship_height * 3.2)
 	_update_view(1.0)
 
 
@@ -212,13 +214,14 @@ func _crash() -> void:
 
 
 func _update_view(delta: float) -> void:
-	var alt: float = maxf(altitude(), 0.0)
-	var fov: float = clampf(120.0 + alt * 1.2, 120.0, 2000000.0)
+	var base_fov: float = maxf(ship_height * 3.2, 50.0)
+	var alt_now: float = maxf(altitude(), 0.0)
+	var fov: float = clampf(base_fov + alt_now * 1.15, base_fov, 2500000.0)
 	var target: float = 720.0 / fov
-	view_scale = lerpf(view_scale, target, clampf(delta * 4.0, 0.0, 1.0))
+	view_scale = lerpf(view_scale, target, clampf(delta * 3.0, 0.0, 1.0))
 
 	var vp := get_viewport_rect().size
-	var anchor := Vector2(vp.x * 0.5, vp.y * 0.60)
+	var anchor := Vector2(vp.x * 0.5, vp.y * 0.58)
 	focus = pos
 	position = anchor - focus * view_scale
 	scale = Vector2(view_scale, view_scale)
@@ -251,6 +254,7 @@ func do_separate() -> void:
 	d.position = pos
 	d.z_index = 1
 	add_child(d)
+	ship_height = maxf(vehicle.total_height(), 6.0)
 	status_text = "级间分离"
 
 

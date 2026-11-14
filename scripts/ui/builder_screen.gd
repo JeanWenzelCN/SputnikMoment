@@ -1,5 +1,5 @@
 extends Control
-## 设计台：零件堆叠成火箭，右侧实时给出质量、推重比与 Δv。
+## 设计台：左侧零件栏拖到中间装配，右侧实时给出质量、推重比与 Δv。
 
 signal launch_requested
 signal back_requested
@@ -7,6 +7,7 @@ signal back_requested
 const UI := preload("res://scripts/ui/ui_kit.gd")
 const Parts := preload("res://scripts/data/parts.gd")
 const Preview := preload("res://scripts/ui/build_preview.gd")
+const PartIcon := preload("res://scripts/ui/part_icon.gd")
 const Backdrop := preload("res://scripts/ui/globe_backdrop.gd")
 
 var design = null
@@ -27,31 +28,33 @@ func _ready() -> void:
 func _build() -> void:
 	add_child(Backdrop.new())
 
-	var title := UI.label("火箭设计", 30, UI.TEXT)
-	UI.at(title, Vector2(56, 40), Vector2(300, 40))
+	var title := UI.label("火箭设计", 28, UI.TEXT)
+	UI.at(title, Vector2(48, 30), Vector2(300, 36))
 	add_child(title)
 
+	var hint := UI.label("拖动左侧零件到装配区", 12, UI.DIM)
+	UI.at(hint, Vector2(48, 66), Vector2(300, 20))
+	add_child(hint)
+
 	var list := VBoxContainer.new()
-	list.add_theme_constant_override("separation", 6)
-	UI.at(list, Vector2(56, 100), Vector2(300, 480))
+	list.add_theme_constant_override("separation", 4)
+	UI.at(list, Vector2(48, 96), Vector2(300, 470))
 	add_child(list)
 
 	for id in Parts.PALETTE_ORDER:
-		var def: Dictionary = Parts.get_def(String(id))
-		var b := UI.pad_button("%s    %.1f 吨" % [String(def["name"]), float(def["dry"]) / 1000.0], 15)
-		b.custom_minimum_size = Vector2(300, 42)
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.pressed.connect(_on_add.bind(String(id)))
-		list.add_child(b)
+		var icon := PartIcon.new()
+		icon.setup(String(id))
+		list.add_child(icon)
 
 	_preview = Preview.new()
-	UI.at(_preview, Vector2(392, 100), Vector2(496, 480))
+	UI.at(_preview, Vector2(376, 96), Vector2(520, 470))
 	add_child(_preview)
 	_preview.design = design
+	_preview.design_changed.connect(_refresh)
 
 	var stats := VBoxContainer.new()
-	stats.add_theme_constant_override("separation", 18)
-	UI.at(stats, Vector2(920, 108), Vector2(300, 320))
+	stats.add_theme_constant_override("separation", 16)
+	UI.at(stats, Vector2(920, 104), Vector2(300, 300))
 	add_child(stats)
 
 	var block_mass := _stat_block("总质量", "0.0 吨")
@@ -68,7 +71,7 @@ func _build() -> void:
 
 	_warn = UI.label("", 13, UI.RED)
 	_warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	UI.at(_warn, Vector2(920, 452), Vector2(300, 90))
+	UI.at(_warn, Vector2(920, 424), Vector2(300, 90))
 	add_child(_warn)
 
 	var bar := HBoxContainer.new()
@@ -76,33 +79,33 @@ func _build() -> void:
 	bar.alignment = BoxContainer.ALIGNMENT_END
 	bar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	bar.offset_left = -640.0
-	bar.offset_top = -74.0
-	bar.offset_right = -56.0
+	bar.offset_top = -72.0
+	bar.offset_right = -48.0
 	bar.offset_bottom = -26.0
 	add_child(bar)
 
 	var undo := UI.pad_button("撤销", 16)
-	undo.custom_minimum_size = Vector2(96, 46)
+	undo.custom_minimum_size = Vector2(96, 44)
 	undo.pressed.connect(_on_undo)
 	bar.add_child(undo)
 
 	var clear := UI.pad_button("清空", 16)
-	clear.custom_minimum_size = Vector2(96, 46)
+	clear.custom_minimum_size = Vector2(96, 44)
 	clear.pressed.connect(_on_clear)
 	bar.add_child(clear)
 
 	var sample := UI.pad_button("示例", 16)
-	sample.custom_minimum_size = Vector2(96, 46)
+	sample.custom_minimum_size = Vector2(96, 44)
 	sample.pressed.connect(_on_sample)
 	bar.add_child(sample)
 
 	var back := UI.pad_button("返回", 16)
-	back.custom_minimum_size = Vector2(96, 46)
+	back.custom_minimum_size = Vector2(96, 44)
 	back.pressed.connect(_on_back)
 	bar.add_child(back)
 
 	var go := UI.primary_button("发射", 18)
-	go.custom_minimum_size = Vector2(160, 46)
+	go.custom_minimum_size = Vector2(160, 44)
 	go.pressed.connect(_on_launch)
 	bar.add_child(go)
 
@@ -110,15 +113,10 @@ func _build() -> void:
 func _stat_block(key: String, value: String) -> Array:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 2)
-	v.add_child(UI.label(key, 13, UI.DIM))
-	var value_label := UI.label(value, 30, UI.TEXT)
+	v.add_child(UI.label(key, 12, UI.DIM))
+	var value_label := UI.label(value, 28, UI.TEXT)
 	v.add_child(value_label)
 	return [v, value_label]
-
-
-func _on_add(id: String) -> void:
-	design.add(id)
-	_refresh()
 
 
 func _on_undo() -> void:
@@ -161,7 +159,7 @@ func _refresh() -> void:
 	var problem := ""
 	if design.size() == 0:
 		problem = "还没有零件"
-	elif design.size() > 0 and String(design.items[design.size() - 1]["id"]) != "pod":
+	elif String(design.items[design.size() - 1]["id"]) != "pod":
 		problem = "顶部缺少指令舱"
 	elif design.pad_thrust_to_weight() < 1.0:
 		problem = "推重比不足 1，无法离地"

@@ -11,6 +11,12 @@ func add(id: String) -> void:
 	items.append({"id": id, "fuel": float(def["fuel"])})
 
 
+func insert(index: int, id: String) -> void:
+	var def: Dictionary = Parts.get_def(id)
+	var at: int = clampi(index, 0, items.size())
+	items.insert(at, {"id": id, "fuel": float(def["fuel"])})
+
+
 func remove_last() -> void:
 	if items.size() > 0:
 		items.pop_back()

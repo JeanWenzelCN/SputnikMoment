@@ -1,77 +1,60 @@
 extends Control
-## 设计台的火箭预览。
+## 装配区：接收零件栏拖入的零件，按落点插入到火箭相应位置。
+
+signal design_changed
 
 const Parts := preload("res://scripts/data/parts.gd")
 
 var design = null
 
 
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.052, 0.064, 0.072, 0.9), true)
-	_draw_grid()
+func _ready() -> void:
+	mouse_filter = Control.MOUSE_FILTER_STOP
 
-	if design == null or design.size() == 0:
-		var font := get_theme_default_font()
-		draw_string(font, Vector2(size.x * 0.5 - 64.0, size.y * 0.5), "选择零件开始搭建", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.40, 0.44, 0.46))
-		return
 
+func _metrics() -> Dictionary:
 	var total_h: float = maxf(design.height(), 1.0)
 	var max_w: float = maxf(design.max_width(), 1.0)
-	var s: float = minf((size.y - 80.0) / total_h, (size.x - 120.0) / max_w)
-	s = clampf(s, 0.5, 34.0)
+	var s: float = minf((size.y - 110.0) / total_h, (size.x - 150.0) / max_w)
+	s = clampf(s, 0.5, 30.0)
+	return {"s": s, "base": size.y * 0.5 + total_h * s * 0.5}
 
+
+func _draw() -> void:
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0.058, 0.070, 0.078, 0.95), true)
+	draw_grid()
+
+	var font := get_theme_default_font()
+	if design == null or design.size() == 0:
+		draw_string(font, Vector2(size.x * 0.5 - 72.0, size.y * 0.5), "把零件拖到这里", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.40, 0.44, 0.46))
+		return
+
+	var m := _metrics()
+	var s: float = float(m["s"])
+	var base: float = float(m["base"])
 	var cx := size.x * 0.5
-	var cursor := size.y * 0.5 + total_h * s * 0.5
-	var ground := cursor
+	var cursor := base
+
+	# 发射台基准
+	draw_line(Vector2(cx - 120.0, base), Vector2(cx + 120.0, base), Color(0.851, 0.639, 0.251, 0.65), 2.0)
+	for i in range(9):
+		var gx := cx - 96.0 + float(i) * 24.0
+		draw_line(Vector2(gx, base), Vector2(gx - 10.0, base + 14.0), Color(0.851, 0.639, 0.251, 0.22), 1.0)
 
 	for item in design.items:
-		var def: Dictionary = Parts.get_def(String(item["id"]))
+		var id := String(item["id"])
+		var def: Dictionary = Parts.get_def(id)
 		var w: float = float(def["w"]) * s
 		var h: float = float(def["h"]) * s
 		var rect := Rect2(cx - w * 0.5, cursor - h, w, h)
-		var col: Color = def["color"]
-		var kind := String(def["kind"])
-
-		if kind == "sep":
-			col = Color(0.86, 0.55, 0.16)
-
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = col
-		sb.set_corner_radius_all(int(maxf(1.0, s * 0.10)))
-		draw_style_box(sb, rect)
-
-		draw_rect(Rect2(rect.position, Vector2(w * 0.16, h)), Color(1.0, 1.0, 1.0, 0.10))
-		draw_rect(Rect2(rect.position + Vector2(w * 0.85, 0.0), Vector2(w * 0.15, h)), Color(0.0, 0.0, 0.0, 0.14))
-		draw_line(Vector2(rect.position.x, rect.end.y - 0.5), Vector2(rect.end.x, rect.end.y - 0.5), Color(0.0, 0.0, 0.0, 0.28), 1.0)
-
-		if kind == "engine":
-			var nw := w * 0.66
-			draw_colored_polygon(PackedVector2Array([
-				Vector2(cx - nw * 0.5, rect.end.y - 1.0),
-				Vector2(cx + nw * 0.5, rect.end.y - 1.0),
-				Vector2(cx + nw * 0.34, rect.end.y + h * 0.34),
-				Vector2(cx - nw * 0.34, rect.end.y + h * 0.34),
-			]), Color(0.17, 0.18, 0.19))
-		elif kind == "pod":
-			var win := Rect2(rect.position + Vector2(w * 0.28, h * 0.22), Vector2(w * 0.44, h * 0.24))
-			draw_rect(win, Color(0.20, 0.38, 0.46), true)
-			draw_rect(win, Color(0.0, 0.0, 0.0, 0.35), false, 1.0)
-		elif kind == "chute":
-			var top := Vector2(cx, rect.position.y)
-			draw_line(top, top + Vector2(0.0, -h * 1.1), Color(0.80, 0.32, 0.26), maxf(1.0, s * 0.12))
-			draw_arc(top + Vector2(0.0, -h * 1.1), h * 0.6, PI, TAU, 16, Color(0.80, 0.32, 0.26), maxf(1.0, s * 0.10), true)
-		elif kind == "legs":
-			var lw: float = w * 0.5
-			draw_line(Vector2(cx - lw, cursor), Vector2(cx - lw * 1.35, cursor + h * 1.1), col, maxf(1.0, s * 0.14))
-			draw_line(Vector2(cx + lw, cursor), Vector2(cx + lw * 1.35, cursor + h * 1.1), col, maxf(1.0, s * 0.14))
-
+		var tex := Parts.texture(id)
+		if tex != null:
+			draw_texture_rect(tex, rect, false)
 		cursor -= h
-
-	draw_line(Vector2(cx - max_w * s * 0.95, ground), Vector2(cx + max_w * s * 0.95, ground), Color(0.85, 0.64, 0.25, 0.5), 1.5)
 
 
 func _draw_grid() -> void:
-	var col := Color(1.0, 1.0, 1.0, 0.025)
+	var col := Color(1.0, 1.0, 1.0, 0.022)
 	var x := 0.0
 	while x < size.x:
 		draw_line(Vector2(x, 0.0), Vector2(x, size.y), col, 1.0)
@@ -80,3 +63,28 @@ func _draw_grid() -> void:
 	while y < size.y:
 		draw_line(Vector2(0.0, y), Vector2(size.x, y), col, 1.0)
 		y += 40.0
+
+
+func _index_at(y: float) -> int:
+	if design == null:
+		return 0
+	var m := _metrics()
+	var s: float = float(m["s"])
+	var cursor: float = float(m["base"])
+	for i in range(design.items.size()):
+		var def: Dictionary = Parts.get_def(String(design.items[i]["id"]))
+		var h: float = float(def["h"]) * s
+		if y > cursor - h * 0.5:
+			return i
+		cursor -= h
+	return design.items.size()
+
+
+func _can_drop_data(_at_position: Vector2, data) -> bool:
+	return typeof(data) == TYPE_DICTIONARY and data.has("part") and design != null
+
+
+func _drop_data(at_position: Vector2, data) -> void:
+	design.insert(_index_at(at_position.y), String(data["part"]))
+	design_changed.emit()
+	queue_redraw()

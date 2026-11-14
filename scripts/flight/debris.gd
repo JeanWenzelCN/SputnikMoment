@@ -1,5 +1,7 @@
 extends Node2D
-## 分离后的残骸：受重力下落，若干秒后淡出。
+## 分离后的残骸：受重力下落，若干秒后消失。
+
+const Parts := preload("res://scripts/data/parts.gd")
 
 const MU := 9.80665 * 600000.0 * 600000.0
 
@@ -22,22 +24,19 @@ func _process(delta: float) -> void:
 	position += velocity * delta
 	rotation += spin * delta
 	life -= delta
-	if life <= 0.0:
-		queue_free()
-		return
-	if r < 600000.0:
+	if life <= 0.0 or r < 600000.0:
 		queue_free()
 		return
 	queue_redraw()
 
 
 func _draw() -> void:
-	var fade: float = clampf(life / 4.0, 0.0, 1.0)
 	var cursor := 0.0
-	for seg in segs:
-		var w := float(seg["w"])
-		var h := float(seg["h"])
-		var col: Color = seg["color"]
-		draw_rect(Rect2(-w * 0.5, -cursor - h, w, h), Color(col.r, col.g, col.b, fade), true)
-		draw_rect(Rect2(-w * 0.5, -cursor - h, w, h), Color(0.05, 0.05, 0.05, fade * 0.8), false, 0.6)
+	for id in segs:
+		var def: Dictionary = Parts.get_def(String(id))
+		var w: float = float(def["w"])
+		var h: float = float(def["h"])
+		var tex := Parts.texture(String(id))
+		if tex != null:
+			draw_texture_rect(tex, Rect2(-w * 0.5, -cursor - h, w, h), false)
 		cursor += h

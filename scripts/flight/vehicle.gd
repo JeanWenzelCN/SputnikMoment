@@ -1,5 +1,5 @@
 extends Node2D
-## 飞行中的火箭实体：多级零件栈、燃料、推力与推进剂消耗。
+## 飞行中的火箭实体：多级零件栈、燃料、推力、尾焰。
 
 const Parts := preload("res://scripts/data/parts.gd")
 
@@ -52,13 +52,6 @@ func mass() -> float:
 	return maxf(m, 1.0)
 
 
-func dry_mass() -> float:
-	var m := 0.0
-	for item in items:
-		m += float(Parts.get_def(String(item["id"]))["dry"])
-	return m
-
-
 func current_thrust() -> float:
 	var r := current_range()
 	if r.is_empty():
@@ -105,9 +98,9 @@ func burn(dt: float) -> void:
 	var thrust := current_thrust()
 	if ve <= 0.0 or thrust <= 0.0:
 		return
-	var need := thrust / ve * dt * throttle
 	if Game.is_cheat("infinite_fuel"):
 		return
+	var need := thrust / ve * dt * throttle
 	var r := current_range()
 	for i in range(int(r[0]), int(r[1]) + 1):
 		if need <= 0.0:
@@ -120,15 +113,14 @@ func burn(dt: float) -> void:
 		need -= take
 
 
-## 抛弃当前级，返回该级的几何信息用于残骸。
+## 抛弃当前级，返回被抛弃零件的 id 列表。
 func separate() -> Array:
 	var r := current_range()
 	if r.is_empty():
 		return []
 	var removed: Array = []
 	for i in range(int(r[0]), int(r[1]) + 1):
-		var def: Dictionary = Parts.get_def(String(items[i]["id"]))
-		removed.append({"w": float(def["w"]), "h": float(def["h"]), "color": def["color"]})
+		removed.append(String(items[i]["id"]))
 	var cut: int = int(r[1])
 	if cut + 1 < items.size() and String(items[cut + 1]["id"]) == "sep":
 		cut += 1
@@ -164,47 +156,53 @@ func _draw() -> void:
 		var def: Dictionary = Parts.get_def(id)
 		var w := float(def["w"])
 		var h := float(def["h"])
-		var col: Color = def["color"]
 		var rect := Rect2(-w * 0.5, -(cursor + h), w, h)
-		var kind := String(def["kind"])
-
-		if kind == "engine":
-			draw_rect(rect, col, true)
-			var nw := w * 0.78
-			draw_colored_polygon(PackedVector2Array([
-				Vector2(-nw * 0.5, -cursor + 0.1),
-				Vector2(nw * 0.5, -cursor + 0.1),
-				Vector2(nw * 0.34, -cursor + h * 0.42),
-				Vector2(-nw * 0.34, -cursor + h * 0.42),
-			]), Color(0.20, 0.21, 0.21))
-			if throttle > 0.02:
-				var flame := h * (0.9 + throttle * 1.6) * (0.85 + 0.15 * sin(_t * 46.0))
-				draw_colored_polygon(PackedVector2Array([
-					Vector2(-nw * 0.40, -cursor + 0.2),
-					Vector2(nw * 0.40, -cursor + 0.2),
-					Vector2(0.0, -cursor + flame),
-				]), Color(1.0, 0.72, 0.30, 0.85))
-			draw_rect(rect, Color(0.05, 0.06, 0.06, 0.9), false, 1.0)
-		elif kind == "sep":
-			draw_rect(rect, Color(col.r, col.g, col.b, 0.9), true)
-			draw_rect(rect, Color(0.10, 0.08, 0.04, 0.9), false, 1.0)
-		elif kind == "pod":
-			draw_rect(rect, col, true)
-			draw_rect(Rect2(rect.position + Vector2(w * 0.30, h * 0.22), Vector2(w * 0.40, h * 0.22)), Color(0.22, 0.40, 0.48), true)
-			draw_rect(rect, Color(0.05, 0.06, 0.06, 0.9), false, 1.0)
-		elif kind == "chute":
-			draw_rect(rect, col, true)
-			draw_line(Vector2(0.0, -cursor), Vector2(0.0, -cursor - h * 3.0), Color(0.78, 0.30, 0.24), 1.0)
-			draw_arc(Vector2(0.0, -cursor - h * 3.0), h * 1.6, PI, TAU, 16, Color(0.78, 0.30, 0.24), 1.5, true)
-		elif kind == "legs":
-			var lw: float = w * 0.5
-			draw_line(Vector2(-lw, -cursor), Vector2(-lw * 1.35, -cursor - h * 1.2), col, 2.0)
-			draw_line(Vector2(lw, -cursor), Vector2(lw * 1.35, -cursor - h * 1.2), col, 2.0)
+		var tex := Parts.texture(id)
+		if tex != null:
+			draw_texture_rect(tex, rect, false)
 		else:
-			draw_rect(rect, col, true)
-			var yy: float = rect.position.y + 1.6
-			while yy < rect.end.y - 1.0:
-				draw_line(Vector2(rect.position.x + 0.2, yy), Vector2(rect.end.x - 0.2, yy), Color(0.0, 0.0, 0.0, 0.20), 0.7)
-				yy += 1.8
+			draw_rect(rect, Color(0.72, 0.74, 0.72), true)
+
+		if String(def["kind"]) == "engine" and throttle > 0.02:
+			_draw_flame(-cursor, w, h)
 
 		cursor += h
+
+
+func _draw_flame(base: float, w: float, h: float) -> void:
+	var flick: float = 0.85 + 0.15 * sin(_t * 43.0) + 0.05 * sin(_t * 27.0)
+	var length: float = h * (2.0 + throttle * 3.6) * flick
+	var half: float = w * 0.33
+
+	# 外围辉光
+	for i in range(3):
+		var rad: float = w * (0.45 + 0.30 * float(i))
+		draw_circle(Vector2(0.0, base + h * 0.22), rad, Color(1.0, 0.52, 0.16, 0.055))
+
+	# 外焰
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(-half * 1.30, base),
+		Vector2(half * 1.30, base),
+		Vector2(half * 0.55, base + length * 0.52),
+		Vector2(0.0, base + length),
+		Vector2(-half * 0.55, base + length * 0.52),
+	]), Color(1.0, 0.44, 0.10, 0.55))
+
+	# 中焰
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(-half, base),
+		Vector2(half, base),
+		Vector2(half * 0.42, base + length * 0.45),
+		Vector2(0.0, base + length * 0.74),
+		Vector2(-half * 0.42, base + length * 0.45),
+	]), Color(1.0, 0.72, 0.26, 0.88))
+
+	# 内焰
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(-half * 0.55, base),
+		Vector2(half * 0.55, base),
+		Vector2(0.0, base + length * 0.38),
+	]), Color(1.0, 0.97, 0.84, 0.95))
+
+	# 分离面亮线
+	draw_line(Vector2(-half * 1.1, base), Vector2(half * 1.1, base), Color(1.0, 0.95, 0.8, 0.55), maxf(0.2, w * 0.05))

@@ -1,70 +1,72 @@
 extends RefCounted
-## 零件表：质量单位 kg，推力单位 N，比冲单位 s，尺寸单位 m。
+## 零件表：质量 kg，推力 N，比冲 s，尺寸 m；美术走 SVG。
 
 const DEFS := {
 	"pod": {
-		"name": "指令舱", "short": "舱",
+		"name": "指令舱",
 		"dry": 900.0, "fuel": 0.0, "thrust": 0.0, "isp": 0.0,
 		"w": 1.8, "h": 2.0, "kind": "pod",
-		"color": Color(0.83, 0.84, 0.80),
+		"tex": "res://assets/parts/pod.svg",
 	},
 	"tank_s": {
-		"name": "燃料罐·小", "short": "小罐",
+		"name": "燃料罐·小",
 		"dry": 260.0, "fuel": 1800.0, "thrust": 0.0, "isp": 0.0,
 		"w": 1.8, "h": 2.4, "kind": "tank",
-		"color": Color(0.74, 0.76, 0.72),
+		"tex": "res://assets/parts/tank_s.svg",
 	},
 	"tank_m": {
-		"name": "燃料罐·中", "short": "中罐",
+		"name": "燃料罐·中",
 		"dry": 520.0, "fuel": 4200.0, "thrust": 0.0, "isp": 0.0,
 		"w": 2.4, "h": 4.0, "kind": "tank",
-		"color": Color(0.72, 0.74, 0.70),
+		"tex": "res://assets/parts/tank_m.svg",
 	},
 	"tank_l": {
-		"name": "燃料罐·大", "short": "大罐",
+		"name": "燃料罐·大",
 		"dry": 980.0, "fuel": 8600.0, "thrust": 0.0, "isp": 0.0,
 		"w": 3.2, "h": 6.2, "kind": "tank",
-		"color": Color(0.70, 0.72, 0.68),
+		"tex": "res://assets/parts/tank_l.svg",
 	},
 	"eng_s": {
-		"name": "引擎·小型", "short": "小引擎",
+		"name": "引擎·小型",
 		"dry": 210.0, "fuel": 0.0, "thrust": 62000.0, "isp": 250.0,
 		"w": 1.4, "h": 1.4, "kind": "engine",
-		"color": Color(0.55, 0.57, 0.56),
+		"tex": "res://assets/parts/eng_s.svg",
 	},
 	"eng_m": {
-		"name": "引擎·中型", "short": "中引擎",
+		"name": "引擎·中型",
 		"dry": 470.0, "fuel": 0.0, "thrust": 215000.0, "isp": 285.0,
 		"w": 2.0, "h": 1.8, "kind": "engine",
-		"color": Color(0.52, 0.54, 0.53),
+		"tex": "res://assets/parts/eng_m.svg",
 	},
 	"eng_l": {
-		"name": "引擎·重型", "short": "重引擎",
+		"name": "引擎·重型",
 		"dry": 1350.0, "fuel": 0.0, "thrust": 690000.0, "isp": 305.0,
 		"w": 2.8, "h": 2.4, "kind": "engine",
-		"color": Color(0.49, 0.51, 0.50),
+		"tex": "res://assets/parts/eng_l.svg",
 	},
 	"sep": {
-		"name": "级间分离器", "short": "分离器",
+		"name": "级间分离器",
 		"dry": 70.0, "fuel": 0.0, "thrust": 0.0, "isp": 0.0,
 		"w": 1.8, "h": 0.5, "kind": "sep",
-		"color": Color(0.86, 0.55, 0.16),
+		"tex": "res://assets/parts/sep.svg",
 	},
 	"chute": {
-		"name": "降落伞", "short": "伞",
+		"name": "降落伞",
 		"dry": 90.0, "fuel": 0.0, "thrust": 0.0, "isp": 0.0,
 		"w": 1.6, "h": 0.7, "kind": "chute",
-		"color": Color(0.78, 0.30, 0.24),
+		"tex": "res://assets/parts/chute.svg",
 	},
 	"legs": {
-		"name": "着陆支架", "short": "支架",
+		"name": "着陆支架",
 		"dry": 120.0, "fuel": 0.0, "thrust": 0.0, "isp": 0.0,
 		"w": 2.6, "h": 0.8, "kind": "legs",
-		"color": Color(0.46, 0.48, 0.47),
+		"tex": "res://assets/parts/legs.svg",
 	},
 }
 
 const PALETTE_ORDER := ["pod", "tank_s", "tank_m", "tank_l", "eng_s", "eng_m", "eng_l", "sep", "chute", "legs"]
+
+static var _texture_cache := {}
 
 
 static func get_def(id: String) -> Dictionary:
@@ -73,3 +75,11 @@ static func get_def(id: String) -> Dictionary:
 
 static func display_name(id: String) -> String:
 	return String(get_def(id)["name"])
+
+
+static func texture(id: String) -> Texture2D:
+	if _texture_cache.has(id):
+		return _texture_cache[id]
+	var tex = load(String(get_def(id)["tex"]))
+	_texture_cache[id] = tex
+	return tex
