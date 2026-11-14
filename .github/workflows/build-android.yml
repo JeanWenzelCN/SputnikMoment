@@ -11,6 +11,7 @@ permissions:
 env:
   GODOT_VERSION: "4.4-stable"
   GODOT_TPL_DIR: "4.4.stable"
+  CMDLINE_TOOLS_URL: "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
 
 jobs:
   build:
@@ -21,20 +22,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Heartbeat
+        continue-on-error: true
+        run: |
+          mkdir -p ci
+          echo "run ${GITHUB_RUN_NUMBER} started $(date -u)" > ci/status.txt
+          git config user.email "ci@sputnik.local"
+          git config user.name "Sputnik CI"
+          git add -f ci/status.txt
+          git commit -q -m "ci: heartbeat ${GITHUB_RUN_NUMBER}" || true
+          git push -f origin HEAD:ci-log
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android components
+      - name: Install Android SDK
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null
-          echo "SDK: $ANDROID_HOME"
+          mkdir -p ci
+          {
+            set -x
+            export ANDROID_HOME="$HOME/android-sdk"
+            echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+            echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+            mkdir -p "$ANDROID_HOME/cmdline-tools"
+            curl -fsSL --retry 3 -o /tmp/cmdline.zip "$CMDLINE_TOOLS_URL"
+            unzip -q /tmp/cmdline.zip -d /tmp/cmdline
+            mv /tmp/cmdline/cmdline-tools "$ANDROID_HOME/cmdline-tools/latest"
+            SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+            yes | "$SDKM" --sdk_root="$ANDROID_HOME" --licenses > /dev/null || true
+            "$SDKM" --sdk_root="$ANDROID_HOME" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+            ls -la "$ANDROID_HOME"
+          } 2>&1 | tee ci/sdk.log
 
       - name: Cache Godot toolchain
         uses: actions/cache@v4
@@ -46,24 +67,27 @@ jobs:
 
       - name: Fetch Godot editor and export templates
         run: |
-          mkdir -p .tools
-          if [ ! -x .tools/godot ]; then
-            curl -fL --retry 3 --retry-delay 5 -o /tmp/godot.zip \
-              "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
-            unzip -qo /tmp/godot.zip -d /tmp/godot_unpack
-            mv "/tmp/godot_unpack/Godot_v${GODOT_VERSION}_linux.x86_64" .tools/godot
-            chmod +x .tools/godot
-          fi
-          TPL_DIR="$HOME/.local/share/godot/export_templates/${GODOT_TPL_DIR}"
-          if [ ! -f "$TPL_DIR/android_source.zip" ]; then
-            curl -fL --retry 3 --retry-delay 5 -o /tmp/templates.tpz \
-              "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
-            rm -rf /tmp/tpl && mkdir -p /tmp/tpl
-            unzip -qo /tmp/templates.tpz -d /tmp/tpl
-            mkdir -p "$TPL_DIR"
-            cp -r /tmp/tpl/templates/. "$TPL_DIR"/
-          fi
-          .tools/godot --version
+          mkdir -p ci .tools
+          {
+            if [ ! -x .tools/godot ]; then
+              curl -fL --retry 3 --retry-delay 5 -o /tmp/godot.zip \
+                "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+              unzip -qo /tmp/godot.zip -d /tmp/godot_unpack
+              mv "/tmp/godot_unpack/Godot_v${GODOT_VERSION}_linux.x86_64" .tools/godot
+              chmod +x .tools/godot
+            fi
+            TPL_DIR="$HOME/.local/share/godot/export_templates/${GODOT_TPL_DIR}"
+            if [ ! -f "$TPL_DIR/android_source.zip" ]; then
+              curl -fL --retry 3 --retry-delay 5 -o /tmp/templates.tpz \
+                "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
+              rm -rf /tmp/tpl && mkdir -p /tmp/tpl
+              unzip -qo /tmp/templates.tpz -d /tmp/tpl
+              mkdir -p "$TPL_DIR"
+              cp -r /tmp/tpl/templates/. "$TPL_DIR"/
+            fi
+            .tools/godot --version
+            ls "$TPL_DIR" | head -20
+          } 2>&1 | tee ci/godot.log
 
       - name: Configure Godot editor settings
         run: |
@@ -78,7 +102,7 @@ jobs:
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
           EOF
-          cat "$HOME/.config/godot/editor_settings-4.tres"
+          cp "$HOME/.config/godot/editor_settings-4.tres" ci/editor_settings.tres
 
       - name: Create debug keystore
         run: |
@@ -87,18 +111,20 @@ jobs:
             -keystore "$HOME/.android/debug.keystore" \
             -storepass android -keypass android \
             -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=Android Debug,O=Android,C=US"
+            -dname "CN=Android Debug,O=Android,C=US" 2>&1 | tee ci/keystore.log
 
       - name: Import project resources
-        run: .tools/godot --headless --path . --import
+        run: |
+          mkdir -p ci
+          .tools/godot --headless --path . --import 2>&1 | tee ci/import.log
 
       - name: Install Android build template
-        run: .tools/godot --headless --path . --install-android-build-template
+        run: .tools/godot --headless --path . --install-android-build-template 2>&1 | tee ci/template.log
 
       - name: Smoke test (menu)
         run: |
           OUT=$(timeout 90 .tools/godot --headless --path . --quit-after 150 2>&1) || true
-          echo "$OUT"
+          echo "$OUT" | tee ci/smoke-menu.log
           if echo "$OUT" | grep -q "SCRIPT ERROR"; then
             echo "::error::GDScript runtime errors in menu"
             exit 1
@@ -107,7 +133,7 @@ jobs:
       - name: Smoke test (flight)
         run: |
           OUT=$(timeout 90 .tools/godot --headless --path . --quit-after 200 -- --flight 2>&1) || true
-          echo "$OUT"
+          echo "$OUT" | tee ci/smoke-flight.log
           if echo "$OUT" | grep -q "SCRIPT ERROR"; then
             echo "::error::GDScript runtime errors in flight"
             exit 1
@@ -115,8 +141,8 @@ jobs:
 
       - name: Export debug APK
         run: |
-          mkdir -p build
-          .tools/godot --headless --path . --export-debug "Android" "$PWD/build/SputnikMoment.apk"
+          mkdir -p build ci
+          .tools/godot --headless --path . --export-debug "Android" "$PWD/build/SputnikMoment.apk" 2>&1 | tee ci/export.log
           ls -l build
           test -f build/SputnikMoment.apk
 
@@ -136,3 +162,23 @@ jobs:
           gh release create nightly build/SputnikMoment.apk \
             --title "Sputnik Moment nightly" \
             --notes "Automated Android build from ${GITHUB_SHA:0:7}"
+
+      - name: Publish CI report
+        if: always()
+        run: |
+          mkdir -p ci
+          {
+            echo "run: ${GITHUB_RUN_NUMBER}"
+            echo "job status: ${{ job.status }}"
+            echo "sha: ${GITHUB_SHA}"
+            java -version 2>&1 | head -2 || true
+            echo "ANDROID_HOME=${ANDROID_HOME:-unset}"
+            ls -la "${ANDROID_HOME:-/nonexistent}" 2>&1 | head -20 || true
+            echo "--- build ---"
+            ls -la build 2>&1 | head -20 || true
+          } > ci/report.txt 2>&1
+          git config user.email "ci@sputnik.local"
+          git config user.name "Sputnik CI"
+          git add -f ci
+          git commit -q -m "ci: report ${GITHUB_RUN_NUMBER} (${{ job.status }})" || true
+          git push -f origin HEAD:ci-log || echo "report push failed"

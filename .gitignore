@@ -3,6 +3,7 @@
 /android/
 /build/
 .tools/
+/ci/
 
 # binaries
 *.apk
