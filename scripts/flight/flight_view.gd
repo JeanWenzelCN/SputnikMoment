@@ -423,14 +423,15 @@ func _draw() -> void:
 		i -= 1
 
 	# 发射台
-	if altitude() < 400.0:
-		var base := Vector2(0.0, -(R + PAD))
-		var up: Vector2 = base.normalized()
+	var earth: Dictionary = get_body("earth")
+	if not earth.is_empty() and altitude() < 400.0:
+		var ebase: Vector2 = Vector2(earth["pos"]) + Vector2(0.0, -1.0) * (float(earth["radius"]) + PAD)
+		var up: Vector2 = (ebase - Vector2(earth["pos"])).normalized()
 		var right := Vector2(-up.y, up.x)
-		var p0: Vector2 = base + right * 9.0 - up * 0.5
-		var p1: Vector2 = base - right * 9.0 - up * 0.5
-		var p2: Vector2 = base - right * 9.0 - up * 3.5
-		var p3: Vector2 = base + right * 9.0 - up * 3.5
+		var p0: Vector2 = ebase + right * 9.0 - up * 0.5
+		var p1: Vector2 = ebase - right * 9.0 - up * 0.5
+		var p2: Vector2 = ebase - right * 9.0 - up * 3.5
+		var p3: Vector2 = ebase + right * 9.0 - up * 3.5
 		draw_colored_polygon(PackedVector2Array([p0, p1, p2, p3]), Color(0.19, 0.20, 0.20))
 		draw_line(p0, p1, Color(0.85, 0.64, 0.25, 0.55), 1.2)
 		draw_line(p1, p2, Color(0.10, 0.11, 0.11), 1.0)
