@@ -22,7 +22,7 @@ func _metrics() -> Dictionary:
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.058, 0.070, 0.078, 0.95), true)
-	draw_grid()
+	_draw_grid()
 
 	var font := get_theme_default_font()
 	if design == null or design.size() == 0:
