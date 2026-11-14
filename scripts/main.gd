@@ -4,12 +4,10 @@ extends Node
 const MenuScreen := preload("res://scripts/ui/menu_screen.gd")
 const BuilderScreen := preload("res://scripts/ui/builder_screen.gd")
 const FlightView := preload("res://scripts/flight/flight_view.gd")
-const CrtOverlay := preload("res://scripts/ui/crt_overlay.gd")
 const ThemeSetup := preload("res://scripts/ui/theme_setup.gd")
 
 var world_layer: CanvasLayer
 var ui_layer: CanvasLayer
-var crt_layer: CanvasLayer
 
 
 func _ready() -> void:
@@ -23,11 +21,6 @@ func _ready() -> void:
 	ui_layer = CanvasLayer.new()
 	ui_layer.layer = 40
 	add_child(ui_layer)
-
-	crt_layer = CanvasLayer.new()
-	crt_layer.layer = 120
-	add_child(crt_layer)
-	crt_layer.add_child(CrtOverlay.new())
 
 	var args := OS.get_cmdline_user_args()
 	if args.has("--flight"):

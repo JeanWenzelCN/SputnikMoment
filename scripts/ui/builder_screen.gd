@@ -1,5 +1,5 @@
 extends Control
-## 设计台：选零件堆叠成火箭，实时算质量、推重比与 Δv。
+## 设计台：零件堆叠成火箭，右侧实时给出质量、推重比与 Δv。
 
 signal launch_requested
 signal back_requested
@@ -7,12 +7,14 @@ signal back_requested
 const UI := preload("res://scripts/ui/ui_kit.gd")
 const Parts := preload("res://scripts/data/parts.gd")
 const Preview := preload("res://scripts/ui/build_preview.gd")
-const Globe := preload("res://scripts/ui/globe_backdrop.gd")
+const Backdrop := preload("res://scripts/ui/globe_backdrop.gd")
 
 var design = null
 var _preview = null
-var _stats: Label
-var _hint: Label
+var _mass: Label
+var _twr: Label
+var _dv: Label
+var _warn: Label
 
 
 func _ready() -> void:
@@ -23,85 +25,95 @@ func _ready() -> void:
 
 
 func _build() -> void:
-	add_child(Globe.new())
+	add_child(Backdrop.new())
 
-	var title := UI.label("火箭设计台", 34, UI.AMBER)
-	UI.at(title, Vector2(56, 34), Vector2(400, 44))
+	var title := UI.label("火箭设计", 30, UI.TEXT)
+	UI.at(title, Vector2(56, 40), Vector2(300, 40))
 	add_child(title)
 
-	var sub := UI.label("自下而上堆叠零件 · 级间放置分离器", 13, UI.STEEL)
-	UI.at(sub, Vector2(56, 78), Vector2(500, 22))
-	add_child(sub)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 6)
+	UI.at(list, Vector2(56, 100), Vector2(300, 480))
+	add_child(list)
 
-	var left := VBoxContainer.new()
-	left.add_theme_constant_override("separation", 6)
-	UI.at(left, Vector2(56, 118), Vector2(300, 470))
-	add_child(left)
-
-	left.add_child(UI.label("零件库", 13, UI.STEEL))
 	for id in Parts.PALETTE_ORDER:
 		var def: Dictionary = Parts.get_def(String(id))
-		var b := UI.pad_button("%s    %.0f t" % [String(def["name"]), float(def["dry"]) / 1000.0], 15)
-		b.custom_minimum_size = Vector2(300, 38)
+		var b := UI.pad_button("%s    %.1f 吨" % [String(def["name"]), float(def["dry"]) / 1000.0], 15)
+		b.custom_minimum_size = Vector2(300, 42)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.pressed.connect(_on_add.bind(String(id)))
-		left.add_child(b)
+		list.add_child(b)
 
 	_preview = Preview.new()
-	UI.at(_preview, Vector2(384, 118), Vector2(500, 470))
+	UI.at(_preview, Vector2(392, 100), Vector2(496, 480))
 	add_child(_preview)
 	_preview.design = design
 
-	var right := VBoxContainer.new()
-	right.add_theme_constant_override("separation", 8)
-	UI.at(right, Vector2(912, 118), Vector2(312, 470))
-	add_child(right)
+	var stats := VBoxContainer.new()
+	stats.add_theme_constant_override("separation", 18)
+	UI.at(stats, Vector2(920, 108), Vector2(300, 320))
+	add_child(stats)
 
-	right.add_child(UI.label("性能估算", 13, UI.STEEL))
-	_stats = UI.label("", 15, UI.AMBER_SOFT)
-	_stats.custom_minimum_size = Vector2(312, 220)
-	_stats.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	right.add_child(_stats)
+	var block_mass := _stat_block("总质量", "0.0 吨")
+	stats.add_child(block_mass[0])
+	_mass = block_mass[1]
 
-	_hint = UI.label("", 12, UI.STEEL)
-	_hint.custom_minimum_size = Vector2(312, 120)
-	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	right.add_child(_hint)
+	var block_twr := _stat_block("推重比", "0.00")
+	stats.add_child(block_twr[0])
+	_twr = block_twr[1]
+
+	var block_dv := _stat_block("Δv", "0 m/s")
+	stats.add_child(block_dv[0])
+	_dv = block_dv[1]
+
+	_warn = UI.label("", 13, UI.RED)
+	_warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UI.at(_warn, Vector2(920, 452), Vector2(300, 90))
+	add_child(_warn)
 
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 10)
 	bar.alignment = BoxContainer.ALIGNMENT_END
 	bar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	bar.offset_left = -700.0
-	bar.offset_top = -76.0
+	bar.offset_left = -640.0
+	bar.offset_top = -74.0
 	bar.offset_right = -56.0
 	bar.offset_bottom = -26.0
 	add_child(bar)
 
-	var undo := UI.pad_button("撤销一步", 16)
-	undo.custom_minimum_size = Vector2(140, 44)
+	var undo := UI.pad_button("撤销", 16)
+	undo.custom_minimum_size = Vector2(96, 46)
 	undo.pressed.connect(_on_undo)
 	bar.add_child(undo)
 
 	var clear := UI.pad_button("清空", 16)
-	clear.custom_minimum_size = Vector2(100, 44)
+	clear.custom_minimum_size = Vector2(96, 46)
 	clear.pressed.connect(_on_clear)
 	bar.add_child(clear)
 
-	var preset := UI.pad_button("参考设计", 16)
-	preset.custom_minimum_size = Vector2(130, 44)
-	preset.pressed.connect(_on_preset)
-	bar.add_child(preset)
+	var sample := UI.pad_button("示例", 16)
+	sample.custom_minimum_size = Vector2(96, 46)
+	sample.pressed.connect(_on_sample)
+	bar.add_child(sample)
 
 	var back := UI.pad_button("返回", 16)
-	back.custom_minimum_size = Vector2(100, 44)
+	back.custom_minimum_size = Vector2(96, 46)
 	back.pressed.connect(_on_back)
 	bar.add_child(back)
 
-	var go := UI.pad_button("发射", 18)
-	go.custom_minimum_size = Vector2(150, 44)
+	var go := UI.primary_button("发射", 18)
+	go.custom_minimum_size = Vector2(160, 46)
 	go.pressed.connect(_on_launch)
 	bar.add_child(go)
+
+
+func _stat_block(key: String, value: String) -> Array:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 2)
+	v.add_child(UI.label(key, 13, UI.DIM))
+	var value_label := UI.label(value, 30, UI.TEXT)
+	v.add_child(value_label)
+	return [v, value_label]
 
 
 func _on_add(id: String) -> void:
@@ -119,7 +131,7 @@ func _on_clear() -> void:
 	_refresh()
 
 
-func _on_preset() -> void:
+func _on_sample() -> void:
 	design.default_design()
 	_refresh()
 
@@ -139,34 +151,23 @@ func _on_launch() -> void:
 func _refresh() -> void:
 	if _preview != null:
 		_preview.queue_redraw()
+	if _mass == null:
+		return
 
-	var mass_t: float = design.total_mass() / 1000.0
-	var dry_t: float = design.dry_mass() / 1000.0
-	var tw: float = design.pad_thrust_to_weight()
-	var dv: float = design.delta_v()
-	var stages: int = design.stage_count()
+	_mass.text = "%.1f 吨" % (design.total_mass() / 1000.0)
+	_twr.text = "%.2f" % design.pad_thrust_to_weight()
+	_dv.text = "%.0f m/s" % design.delta_v()
 
-	_stats.text = "总质量    %.2f t\n干重      %.2f t\n高度      %.1f m\n级数      %d\n起飞推重比 %.2f\nΔv 估算   %.0f m/s" % [
-		mass_t, dry_t, design.height(), stages, tw, dv
-	]
-
-	var lines: Array = []
-	if tw < 1.0:
-		lines.append("推重比不足 1，无法离地。")
-	if dv < 2400.0:
-		lines.append("Δv 低于入轨所需的约 2400 m/s。")
-	if stages < 2:
-		lines.append("单级火箭难以入轨，试试加入级间分离器。")
-	if design.size() > 0 and String(design.items[design.size() - 1]["id"]) != "pod":
-		lines.append("顶端还没有指令舱。")
-	if lines.is_empty():
-		lines.append("结构看起来可行，可以发射。")
-	var text := ""
-	for i in range(lines.size()):
-		if i > 0:
-			text += "\n"
-		text += str(lines[i])
-	_hint.text = text
+	var problem := ""
+	if design.size() == 0:
+		problem = "还没有零件"
+	elif design.size() > 0 and String(design.items[design.size() - 1]["id"]) != "pod":
+		problem = "顶部缺少指令舱"
+	elif design.pad_thrust_to_weight() < 1.0:
+		problem = "推重比不足 1，无法离地"
+	elif design.stage_count() < 2:
+		problem = "单级难以入轨，加个分离器"
+	_warn.text = problem
 
 
 func _unhandled_input(event: InputEvent) -> void:

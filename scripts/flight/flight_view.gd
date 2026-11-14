@@ -1,5 +1,5 @@
 extends Node2D
-## 飞行场景：600 km 半径行星、大气、多级火箭、轨道与时间加速。
+## 飞行场景。自身承担视图变换（不做大坐标相机），保证火箭始终在屏幕上。
 
 signal exit_requested
 
@@ -17,7 +17,6 @@ const PAD := 6.0
 const WARPS := [1, 5, 20, 100]
 
 var vehicle = null
-var camera: Camera2D
 var hud = null
 var planet: Sprite2D
 
@@ -28,11 +27,14 @@ var angv := 0.0
 var throttle := 0.0
 var elapsed := 0.0
 var alive := true
-var landed := false
+var landed := true
 var warp_index := 0
 var map_visible := false
 var orbit_el := {}
 var status_text := ""
+
+var view_scale := 6.0
+var focus := Vector2.ZERO
 
 var _orbit_timer := 0.0
 
@@ -42,17 +44,10 @@ func _ready() -> void:
 	_build_planet()
 
 	vehicle = Vehicle.new()
-	vehicle.z_index = 3
+	vehicle.z_index = 2
 	add_child(vehicle)
 	vehicle.setup(Game.design)
 	vehicle.position = pos
-	vehicle.throttle = 0.0
-
-	camera = Camera2D.new()
-	camera.position = pos
-	camera.zoom = Vector2(6.0, 6.0)
-	add_child(camera)
-	camera.make_current()
 
 	var hud_layer := CanvasLayer.new()
 	hud_layer.layer = 20
@@ -63,18 +58,14 @@ func _ready() -> void:
 	hud.exit_requested.connect(_on_exit)
 
 	orbit_el = Orbit.elements(pos, vel)
+	view_scale = 720.0 / 120.0
+	_update_view(1.0)
 
 
 func _build_backdrop() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = -10
 	add_child(layer)
-
-	var void_rect := ColorRect.new()
-	void_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	void_rect.color = Color(0.017, 0.022, 0.026, 1.0)
-	void_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(void_rect)
 
 	var stars := ColorRect.new()
 	stars.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -137,21 +128,20 @@ func _physics_process(delta: float) -> void:
 	vehicle.position = pos
 	vehicle.rotation = rot
 
-	_update_camera(delta)
-	queue_redraw()
+	_update_view(delta)
 
 	_orbit_timer += delta
 	if _orbit_timer >= 0.2:
 		_orbit_timer = 0.0
 		orbit_el = Orbit.elements(pos, vel)
 
+	queue_redraw()
+
 
 func _handle_input(delta: float) -> void:
-	var up := Input.is_action_pressed("throttle_up")
-	var down := Input.is_action_pressed("throttle_down")
-	if up:
+	if Input.is_action_pressed("throttle_up"):
 		throttle = minf(1.0, throttle + delta * 1.3)
-	elif down:
+	elif Input.is_action_pressed("throttle_down"):
 		throttle = maxf(0.0, throttle - delta * 2.2)
 
 	if not Game.is_cheat("infinite_fuel") and vehicle.current_fuel() <= 0.0:
@@ -174,8 +164,7 @@ func _step(dt: float) -> void:
 	var accel: Vector2 = -pos.normalized() * (MU / (r * r))
 
 	var thrust: float = vehicle.current_thrust()
-	var fuel: float = vehicle.current_fuel()
-	var fuel_ok: bool = Game.is_cheat("infinite_fuel") or fuel > 0.0
+	var fuel_ok: bool = Game.is_cheat("infinite_fuel") or vehicle.current_fuel() > 0.0
 	if throttle > 0.01 and thrust > 0.0 and fuel_ok:
 		var force: float = thrust * throttle
 		if Game.is_cheat("overdrive"):
@@ -219,15 +208,20 @@ func _crash() -> void:
 	throttle = 0.0
 	angv = 0.0
 	vehicle.visible = false
-	status_text = "任务失败：箭体损毁"
+	status_text = "箭体损毁"
 
 
-func _update_camera(delta: float) -> void:
+func _update_view(delta: float) -> void:
 	var alt: float = maxf(altitude(), 0.0)
-	var fov: float = clampf(140.0 + alt * 1.15, 140.0, 2400000.0)
+	var fov: float = clampf(120.0 + alt * 1.2, 120.0, 2000000.0)
 	var target: float = 720.0 / fov
-	camera.zoom = camera.zoom.lerp(Vector2(target, target), clampf(delta * 3.0, 0.0, 1.0))
-	camera.position = pos
+	view_scale = lerpf(view_scale, target, clampf(delta * 4.0, 0.0, 1.0))
+
+	var vp := get_viewport_rect().size
+	var anchor := Vector2(vp.x * 0.5, vp.y * 0.60)
+	focus = pos
+	position = anchor - focus * view_scale
+	scale = Vector2(view_scale, view_scale)
 
 
 func planet_radius() -> float:
@@ -247,7 +241,7 @@ func speed() -> float:
 
 
 func do_separate() -> void:
-	if not alive or landed:
+	if not alive:
 		return
 	var geometry: Array = vehicle.separate()
 	if geometry.is_empty():
@@ -255,7 +249,7 @@ func do_separate() -> void:
 	var d = Debris.new()
 	d.setup(geometry, vel + pos.normalized() * -1.5, randf_range(-0.6, 0.6))
 	d.position = pos
-	d.z_index = 2
+	d.z_index = 1
 	add_child(d)
 	status_text = "级间分离"
 
@@ -272,10 +266,6 @@ func toggle_map() -> void:
 	map_visible = not map_visible
 
 
-func set_throttle_level(value: float) -> void:
-	throttle = clampf(value, 0.0, 1.0)
-
-
 func toggle_full_throttle() -> void:
 	if throttle > 0.9:
 		throttle = 0.0
@@ -288,15 +278,22 @@ func _on_exit() -> void:
 
 
 func _draw() -> void:
-	if altitude() > 4000.0:
-		return
-	var up: Vector2 = pos.normalized()
-	var right := Vector2(-up.y, up.x)
-	var col := Color(0.62, 0.78, 0.62, 0.14)
-	var span := 2500.0
-	for i in range(-24, 25):
-		var off: Vector2 = right * (float(i) * 100.0)
-		draw_line(pos + off - up * span, pos + off + up * span, col, 1.0)
-	for i in range(-12, 13):
-		var off2: Vector2 = up * (float(i) * 100.0)
-		draw_line(pos + off2 - right * span, pos + off2 + right * span, col, 1.0)
+	if altitude() < 4000.0:
+		var up: Vector2 = pos.normalized()
+		var right := Vector2(-up.y, up.x)
+		var col := Color(0.60, 0.72, 0.62, 0.13)
+		var span := 2500.0
+		for i in range(-20, 21):
+			var off: Vector2 = right * (float(i) * 100.0)
+			draw_line(pos + off - up * span, pos + off + up * span, col, 1.0)
+		for i in range(-10, 11):
+			var off2: Vector2 = up * (float(i) * 100.0)
+			draw_line(pos + off2 - right * span, pos + off2 + right * span, col, 1.0)
+
+	# 缩得太小时给飞船一个固定尺寸的定位标记
+	if view_scale * 12.0 < 10.0:
+		var rr: float = 10.0 / view_scale
+		var line_w: float = 1.4 / view_scale
+		draw_arc(pos, rr, 0.0, TAU, 24, Color(0.92, 0.94, 0.96, 0.85), line_w, true)
+		draw_line(pos - Vector2(rr * 1.7, 0.0), pos - Vector2(rr * 0.6, 0.0), Color(0.92, 0.94, 0.96, 0.85), line_w)
+		draw_line(pos + Vector2(rr * 0.6, 0.0), pos + Vector2(rr * 1.7, 0.0), Color(0.92, 0.94, 0.96, 0.85), line_w)
