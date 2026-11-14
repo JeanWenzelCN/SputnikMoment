@@ -160,7 +160,9 @@ jobs:
           mkdir -p android/build
           unzip -q "$TPL_DIR/android_source.zip" -d android/build
           touch android/build/.gdignore
+          echo "${GODOT_TPL_DIR}" > android/.build_version
           ls android/build | head -20 | tee ci/template.log
+          cat android/.build_version
 
       - name: Smoke test (menu)
         run: |
