@@ -139,7 +139,15 @@ jobs:
       - name: Export debug APK
         run: |
           mkdir -p build ci
-          .tools/godot --headless --path . --export-debug "Android" "$PWD/build/SputnikMoment.apk" 2>&1 | tee ci/export.log
+          {
+            echo "--- editor settings ---"
+            cat "$HOME/.config/godot/editor_settings-4.tres"
+            echo "--- keystore ---"
+            ls -la "$HOME/.android"
+            echo "--- templates ---"
+            ls -la "$HOME/.local/share/godot/export_templates/${GODOT_TPL_DIR}" | head -25
+          } 2>&1 | tee ci/diagnose.log
+          .tools/godot --headless --verbose --path . --export-debug "Android" "$PWD/build/SputnikMoment.apk" 2>&1 | tee ci/export.log
           ls -l build
           test -f build/SputnikMoment.apk
 
