@@ -7,7 +7,7 @@ const UI := preload("res://scripts/ui/ui_kit.gd")
 const SettingsPanel := preload("res://scripts/ui/settings_panel.gd")
 const MapView := preload("res://scripts/flight/map_view.gd")
 const Stick := preload("res://scripts/ui/virtual_stick.gd")
-const Slider := preload("res://scripts/ui/throttle_slider.gd")
+const ThrottleBar := preload("res://scripts/ui/throttle_slider.gd")
 
 var view = null
 
@@ -106,7 +106,7 @@ func _build() -> void:
 	_stick.vector_changed.connect(_on_stick)
 
 	# 右下油门滑块
-	_slider = Slider.new()
+	_slider = ThrottleBar.new()
 	_slider.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	_slider.offset_left = -118.0
 	_slider.offset_top = -300.0
