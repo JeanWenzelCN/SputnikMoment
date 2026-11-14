@@ -49,20 +49,20 @@ func _build() -> void:
 	list.offset_bottom = -96.0
 	panel.add_child(list)
 
-	list.add_child(UI.label("OPTIONS", 34, UI.AMBER))
-	list.add_child(UI.label("CHEAT CIRCUITS  /  AUTOMATION", 12, UI.STEEL))
+	list.add_child(UI.label("选项", 34, UI.AMBER))
+	list.add_child(UI.label("作弊回路  /  自动化", 12, UI.STEEL))
 	list.add_child(_spacer(14))
 
-	list.add_child(_section("CHEATS  ·  FREEDOM MODE ONLY"))
+	list.add_child(_section("作弊 · 仅自由模式"))
 	for key in Game.CHEATS:
 		list.add_child(_row(key, String(Game.CHEATS[key]), "cheat"))
 
 	list.add_child(_spacer(12))
-	list.add_child(_section("AUTOMATION ASSISTS"))
+	list.add_child(_section("自动化辅助"))
 	for key in Game.ASSISTS:
 		list.add_child(_row(key, String(Game.ASSISTS[key]), "assist"))
 
-	var close := UI.button("RETURN", 19)
+	var close := UI.button("返回", 19)
 	close.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	close.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	close.offset_left = 34.0
@@ -74,7 +74,7 @@ func _build() -> void:
 
 
 func _section(text: String) -> Label:
-	return UI.label(UI.spaced(text), 11, Color(UI.STEEL.r, UI.STEEL.g, UI.STEEL.b, 0.8))
+	return UI.label(text, 12, Color(UI.STEEL.r, UI.STEEL.g, UI.STEEL.b, 0.8))
 
 
 func _spacer(h: int) -> Control:
@@ -100,9 +100,9 @@ func _sync() -> void:
 			on = Game.is_cheat(key)
 		else:
 			on = Game.is_assist(key)
-		var state := "ENGAGED" if on else "OFF"
+		var state := "启用" if on else "关闭"
 		var button: Button = data["button"]
-		button.text = "%-28s [ %s ]" % [String(data["label"]), state]
+		button.text = "%s        [ %s ]" % [String(data["label"]), state]
 
 
 func _on_toggle(key: String, kind: String) -> void:

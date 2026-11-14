@@ -164,23 +164,18 @@ jobs:
           ls android/build | head -20 | tee ci/template.log
           cat android/.build_version
 
-      - name: Smoke test (menu)
+      - name: Smoke test (menu / builder / flight)
         run: |
-          OUT=$(timeout 90 .tools/godot --headless --path . --quit-after 150 2>&1) || true
-          echo "$OUT" | tee ci/smoke-menu.log
-          if echo "$OUT" | grep -q "SCRIPT ERROR"; then
-            echo "::error::GDScript runtime errors in menu"
-            exit 1
-          fi
-
-      - name: Smoke test (flight)
-        run: |
-          OUT=$(timeout 90 .tools/godot --headless --path . --quit-after 200 -- --flight 2>&1) || true
-          echo "$OUT" | tee ci/smoke-flight.log
-          if echo "$OUT" | grep -q "SCRIPT ERROR"; then
-            echo "::error::GDScript runtime errors in flight"
-            exit 1
-          fi
+          touch ci/smoke.log
+          for mode in "" "--builder" "--flight"; do
+            echo "=== mode: ${mode:-menu} ===" | tee -a ci/smoke.log
+            OUT=$(timeout 90 .tools/godot --headless --path . --quit-after 160 -- $mode 2>&1) || true
+            echo "$OUT" | tee -a ci/smoke.log
+            if echo "$OUT" | grep -q "SCRIPT ERROR"; then
+              echo "::error::GDScript runtime errors in ${mode:-menu}"
+              exit 1
+            fi
+          done
 
       - name: Export debug APK
         run: |

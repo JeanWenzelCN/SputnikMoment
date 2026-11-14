@@ -1,9 +1,11 @@
 extends Node
-## Root shell: owns the canvas layers and swaps between menu and flight.
+## 根节点：画布分层、中文字体主题、场景路由。
 
 const MenuScreen := preload("res://scripts/ui/menu_screen.gd")
+const BuilderScreen := preload("res://scripts/ui/builder_screen.gd")
 const FlightView := preload("res://scripts/flight/flight_view.gd")
 const CrtOverlay := preload("res://scripts/ui/crt_overlay.gd")
+const ThemeSetup := preload("res://scripts/ui/theme_setup.gd")
 
 var world_layer: CanvasLayer
 var ui_layer: CanvasLayer
@@ -12,6 +14,7 @@ var crt_layer: CanvasLayer
 
 func _ready() -> void:
 	Engine.max_fps = 60
+	get_tree().root.theme = ThemeSetup.make_theme()
 
 	world_layer = CanvasLayer.new()
 	world_layer.layer = 0
@@ -26,8 +29,11 @@ func _ready() -> void:
 	add_child(crt_layer)
 	crt_layer.add_child(CrtOverlay.new())
 
-	if OS.get_cmdline_user_args().has("--flight"):
+	var args := OS.get_cmdline_user_args()
+	if args.has("--flight"):
 		show_flight()
+	elif args.has("--builder"):
+		show_builder()
 	else:
 		show_menu()
 
@@ -41,8 +47,18 @@ func show_menu() -> void:
 	clear_layer(world_layer)
 	clear_layer(ui_layer)
 	var menu := MenuScreen.new()
-	menu.start_flight.connect(show_flight)
+	menu.launch_requested.connect(show_flight)
+	menu.builder_requested.connect(show_builder)
 	ui_layer.add_child(menu)
+
+
+func show_builder() -> void:
+	clear_layer(world_layer)
+	clear_layer(ui_layer)
+	var builder := BuilderScreen.new()
+	builder.launch_requested.connect(show_flight)
+	builder.back_requested.connect(show_menu)
+	ui_layer.add_child(builder)
 
 
 func show_flight() -> void:

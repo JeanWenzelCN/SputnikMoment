@@ -1,5 +1,5 @@
 extends Node
-## Registers input actions at runtime so project.godot stays minimal.
+## 运行时注册输入动作，键盘与触屏按钮共用同一套动作。
 
 const ACTIONS := {
 	"throttle_up": [KEY_W, KEY_UP],
@@ -7,6 +7,8 @@ const ACTIONS := {
 	"yaw_left": [KEY_A, KEY_LEFT],
 	"yaw_right": [KEY_D, KEY_RIGHT],
 	"stage": [KEY_SPACE],
+	"warp": [KEY_T],
+	"map": [KEY_M],
 	"back": [KEY_ESCAPE],
 }
 

@@ -1,58 +1,56 @@
 extends Node2D
-## Freedom flight: one planet, one rocket, radial gravity, generous assists.
+## 飞行场景：600 km 半径行星、大气、多级火箭、轨道与时间加速。
 
 signal exit_requested
 
-const RocketScript := preload("res://scripts/flight/rocket.gd")
+const Vehicle := preload("res://scripts/flight/vehicle.gd")
 const HudScript := preload("res://scripts/flight/hud.gd")
+const Debris := preload("res://scripts/flight/debris.gd")
+const Orbit := preload("res://scripts/orbit.gd")
 const PlanetShader := preload("res://shaders/planet.gdshader")
 const StarfieldShader := preload("res://shaders/starfield.gdshader")
 
-const PLANET_RADIUS := 2400.0
-const SURFACE_G := 9.8
-const THRUST := 26.0
-const OVERDRIVE := 72.0
-const ROT_SPEED := 1.5
-const ROT_ACCEL := 4.0
-const FUEL_BURN := 5.0
-const START_ALT := 90.0
-const HALO := 1.4
-const HULL_OFFSET := 26.0
+const R := 600000.0
+const MU := 9.80665 * 600000.0 * 600000.0
+const ATMO := 70000.0
+const PAD := 6.0
+const WARPS := [1, 5, 20, 100]
 
-var rocket = null
+var vehicle = null
 var camera: Camera2D
 var hud = null
 var planet: Sprite2D
-var plot: Line2D
 
-var elapsed := 0.0
+var pos := Vector2(0.0, -(R + PAD))
+var vel := Vector2.ZERO
+var rot := 0.0
+var angv := 0.0
 var throttle := 0.0
-var ang_vel := 0.0
+var elapsed := 0.0
 var alive := true
+var landed := false
+var warp_index := 0
+var map_visible := false
+var orbit_el := {}
+var status_text := ""
 
-var _plot_timer := 0.0
-var _impact_timer := 0.0
-var _impact_cache := 0.0
+var _orbit_timer := 0.0
 
 
 func _ready() -> void:
 	_build_backdrop()
 	_build_planet()
 
-	rocket = RocketScript.new()
-	rocket.z_index = 2
-	add_child(rocket)
-	rocket.position = Vector2(0.0, -(PLANET_RADIUS + START_ALT))
-
-	plot = Line2D.new()
-	plot.width = 2.0
-	plot.default_color = Color(1.0, 0.72, 0.30, 0.55)
-	plot.z_index = 1
-	add_child(plot)
+	vehicle = Vehicle.new()
+	vehicle.z_index = 3
+	add_child(vehicle)
+	vehicle.setup(Game.design)
+	vehicle.position = pos
+	vehicle.throttle = 0.0
 
 	camera = Camera2D.new()
-	camera.position = rocket.position
-	camera.zoom = Vector2(0.92, 0.92)
+	camera.position = pos
+	camera.zoom = Vector2(6.0, 6.0)
 	add_child(camera)
 	camera.make_current()
 
@@ -63,7 +61,8 @@ func _ready() -> void:
 	hud_layer.add_child(hud)
 	hud.bind(self)
 	hud.exit_requested.connect(_on_exit)
-	hud.restart_requested.connect(restart)
+
+	orbit_el = Orbit.elements(pos, vel)
 
 
 func _build_backdrop() -> void:
@@ -73,7 +72,7 @@ func _build_backdrop() -> void:
 
 	var void_rect := ColorRect.new()
 	void_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	void_rect.color = Color(0.020, 0.026, 0.029, 1.0)
+	void_rect.color = Color(0.017, 0.022, 0.026, 1.0)
 	void_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(void_rect)
 
@@ -96,7 +95,7 @@ func _build_planet() -> void:
 	planet.texture = tex
 	planet.centered = true
 	planet.position = Vector2.ZERO
-	planet.scale = Vector2(PLANET_RADIUS * HALO, PLANET_RADIUS * HALO)
+	planet.scale = Vector2(R * 1.4, R * 1.4)
 	planet.z_index = -2
 	var mat := ShaderMaterial.new()
 	mat.shader = PlanetShader
@@ -107,179 +106,197 @@ func _build_planet() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("back"):
 		_on_exit()
+	elif event.is_action_pressed("stage"):
+		do_separate()
+	elif event.is_action_pressed("warp"):
+		cycle_warp()
+	elif event.is_action_pressed("map"):
+		toggle_map()
 
 
 func _physics_process(delta: float) -> void:
 	if not alive:
 		return
 
-	elapsed += delta
 	_handle_input(delta)
-	_step(delta)
+	vehicle.throttle = throttle
+
+	var warp: int = int(WARPS[warp_index])
+	if altitude() < ATMO and warp > 5:
+		warp = 5
+	var total := delta * float(warp)
+	var steps := clampi(int(ceil(total / 0.04)), 1, 90)
+	var dt := total / float(steps)
+	for i in range(steps):
+		_step(dt)
+	elapsed += total
+
+	if pos.length() > R + PAD + 0.6:
+		landed = false
+
+	vehicle.position = pos
+	vehicle.rotation = rot
+
 	_update_camera(delta)
+	queue_redraw()
 
-	_plot_timer += delta
-	if _plot_timer >= 0.10:
-		_plot_timer = 0.0
-		_update_plot()
-
-	_impact_timer += delta
-	if _impact_timer >= 0.30:
-		_impact_timer = 0.0
-		_impact_cache = _simulate_impact()
+	_orbit_timer += delta
+	if _orbit_timer >= 0.2:
+		_orbit_timer = 0.0
+		orbit_el = Orbit.elements(pos, vel)
 
 
 func _handle_input(delta: float) -> void:
-	if Input.is_action_pressed("throttle_up"):
-		throttle = minf(1.0, throttle + delta * 1.7)
-	elif Input.is_action_pressed("throttle_down"):
-		throttle = maxf(0.0, throttle - delta * 2.6)
+	var up := Input.is_action_pressed("throttle_up")
+	var down := Input.is_action_pressed("throttle_down")
+	if up:
+		throttle = minf(1.0, throttle + delta * 1.3)
+	elif down:
+		throttle = maxf(0.0, throttle - delta * 2.2)
+
+	if not Game.is_cheat("infinite_fuel") and vehicle.current_fuel() <= 0.0:
+		throttle = 0.0
 
 	var torque := 0.0
 	if Input.is_action_pressed("yaw_left"):
-		torque -= ROT_ACCEL
+		torque -= 3.2
 	if Input.is_action_pressed("yaw_right"):
-		torque += ROT_ACCEL
-	ang_vel += torque * delta
-
+		torque += 3.2
+	angv += torque * delta
 	if absf(torque) < 0.001 and Game.is_assist("gyro"):
-		ang_vel = lerpf(ang_vel, 0.0, clampf(delta * 2.2, 0.0, 1.0))
-
-	ang_vel = clampf(ang_vel, -ROT_SPEED, ROT_SPEED)
-	rocket.rotation += ang_vel * delta
-
-	if not Game.is_cheat("infinite_fuel") and rocket.fuel <= 0.0:
-		throttle = 0.0
-	rocket.throttle_vis = throttle
+		angv = lerpf(angv, 0.0, clampf(delta * 2.0, 0.0, 1.0))
+	angv = clampf(angv, -1.7, 1.7)
+	rot += angv * delta
 
 
-func _step(delta: float) -> void:
-	var pos: Vector2 = rocket.position
-	var r: float = maxf(1.0, pos.length())
-	var up: Vector2 = -pos / r
-	var g: float = SURFACE_G * pow(PLANET_RADIUS / r, 2.0)
-	var accel: Vector2 = -up * g
+func _step(dt: float) -> void:
+	var r: float = maxf(R + 1.0, pos.length())
+	var accel: Vector2 = -pos.normalized() * (MU / (r * r))
 
-	if Game.is_cheat("zero_g"):
-		accel = Vector2.ZERO
+	var thrust: float = vehicle.current_thrust()
+	var fuel: float = vehicle.current_fuel()
+	var fuel_ok: bool = Game.is_cheat("infinite_fuel") or fuel > 0.0
+	if throttle > 0.01 and thrust > 0.0 and fuel_ok:
+		var force: float = thrust * throttle
+		if Game.is_cheat("overdrive"):
+			force *= 2.4
+		accel += Vector2.UP.rotated(rot) * (force / vehicle.mass())
+		vehicle.burn(dt)
 
-	var fuel_ok: bool = Game.is_cheat("infinite_fuel") or rocket.fuel > 0.0
-	if throttle > 0.01 and fuel_ok:
-		var t: float = OVERDRIVE if Game.is_cheat("overdrive") else THRUST
-		accel += Vector2.UP.rotated(rocket.rotation) * (t * throttle)
-		if not Game.is_cheat("infinite_fuel"):
-			rocket.fuel = maxf(0.0, rocket.fuel - FUEL_BURN * throttle * delta)
+	var alt: float = r - R
+	if alt < ATMO and alt > 0.0:
+		var rho: float = 1.225 * exp(-alt / 8500.0)
+		var spd: float = vel.length()
+		if spd > 0.4:
+			var drag: float = 0.5 * rho * spd * spd * 0.45 * vehicle.ref_area()
+			accel += -vel.normalized() * (drag / vehicle.mass())
 
-	rocket.velocity += accel * delta
-	rocket.position += rocket.velocity * delta
-	_check_surface()
+	vel += accel * dt
+	pos += vel * dt
+	_check_ground()
 
 
-func _check_surface() -> void:
-	var floor_r: float = PLANET_RADIUS + HULL_OFFSET
-	if rocket.position.length() > floor_r:
+func _check_ground() -> void:
+	var floor_r: float = R + PAD
+	if pos.length() >= floor_r:
 		return
-
-	var nrm: Vector2 = rocket.position.normalized()
-	var radial: float = rocket.velocity.dot(nrm)
-
-	if radial < -22.0 and not Game.is_cheat("hull"):
+	var nrm: Vector2 = pos.normalized()
+	var radial: float = vel.dot(nrm)
+	if radial < -13.0 and not Game.is_cheat("hull"):
 		_crash()
 		return
-
-	rocket.position = nrm * floor_r
-	var tangential: Vector2 = rocket.velocity - nrm * radial
-	rocket.velocity = tangential * 0.72
-	throttle = minf(throttle, 0.3)
+	pos = nrm * floor_r
+	vel -= nrm * radial
+	if radial < -1.0:
+		landed = true
+		status_text = "着陆成功"
+	elif vel.length() < 2.0:
+		landed = true
 
 
 func _crash() -> void:
 	alive = false
 	throttle = 0.0
-	ang_vel = 0.0
-	rocket.throttle_vis = 0.0
-	rocket.visible = false
-	plot.points = PackedVector2Array()
-
-
-func restart() -> void:
-	alive = true
-	elapsed = 0.0
-	throttle = 0.0
-	ang_vel = 0.0
-
-	rocket.visible = true
-	rocket.position = Vector2(0.0, -(PLANET_RADIUS + START_ALT))
-	rocket.velocity = Vector2.ZERO
-	rocket.rotation = 0.0
-	rocket.fuel = rocket.fuel_max
-	rocket.throttle_vis = 0.0
-
-	camera.position = rocket.position
-	camera.zoom = Vector2(0.92, 0.92)
-	plot.points = PackedVector2Array()
+	angv = 0.0
+	vehicle.visible = false
+	status_text = "任务失败：箭体损毁"
 
 
 func _update_camera(delta: float) -> void:
-	var target: float = clampf(1.05 - altitude() / 4200.0, 0.18, 1.05)
-	camera.zoom = camera.zoom.lerp(Vector2(target, target), clampf(delta * 1.6, 0.0, 1.0))
-	camera.position = camera.position.lerp(rocket.position, clampf(delta * 7.0, 0.0, 1.0))
+	var alt: float = maxf(altitude(), 0.0)
+	var fov: float = clampf(140.0 + alt * 1.15, 140.0, 2400000.0)
+	var target: float = 720.0 / fov
+	camera.zoom = camera.zoom.lerp(Vector2(target, target), clampf(delta * 3.0, 0.0, 1.0))
+	camera.position = pos
 
 
-func _update_plot() -> void:
-	if not Game.is_assist("predictor") or not alive:
-		plot.points = PackedVector2Array()
-		return
-
-	var p: Vector2 = rocket.position
-	var v: Vector2 = rocket.velocity
-	var dt := 0.06
-	var pts := PackedVector2Array()
-
-	for i in range(150):
-		var r: float = maxf(1.0, p.length())
-		var up: Vector2 = -p / r
-		var accel: Vector2 = -up * (SURFACE_G * pow(PLANET_RADIUS / r, 2.0))
-		if Game.is_cheat("zero_g"):
-			accel = Vector2.ZERO
-		v += accel * dt
-		p += v * dt
-		pts.append(p)
-		if p.length() <= PLANET_RADIUS:
-			break
-
-	plot.points = pts
-
-
-func _simulate_impact() -> float:
-	var p: Vector2 = rocket.position
-	var v: Vector2 = rocket.velocity
-	var dt := 0.05
-	for i in range(2400):
-		var r: float = maxf(1.0, p.length())
-		var up: Vector2 = -p / r
-		v += (-up * (SURFACE_G * pow(PLANET_RADIUS / r, 2.0))) * dt
-		p += v * dt
-		if p.length() <= PLANET_RADIUS + HULL_OFFSET:
-			return v.length()
-	return v.length()
+func planet_radius() -> float:
+	return R
 
 
 func altitude() -> float:
-	return rocket.position.length() - PLANET_RADIUS - HULL_OFFSET
+	return pos.length() - R - PAD
+
+
+func radial_speed() -> float:
+	return vel.dot(pos.normalized())
 
 
 func speed() -> float:
-	return rocket.velocity.length()
+	return vel.length()
 
 
-func fuel_fraction() -> float:
-	return clampf(rocket.fuel / rocket.fuel_max, 0.0, 1.0)
+func do_separate() -> void:
+	if not alive or landed:
+		return
+	var geometry: Array = vehicle.separate()
+	if geometry.is_empty():
+		return
+	var d = Debris.new()
+	d.setup(geometry, vel + pos.normalized() * -1.5, randf_range(-0.6, 0.6))
+	d.position = pos
+	d.z_index = 2
+	add_child(d)
+	status_text = "级间分离"
 
 
-func impact_estimate() -> float:
-	return _impact_cache
+func cycle_warp() -> void:
+	warp_index = (warp_index + 1) % WARPS.size()
+
+
+func warp_text() -> String:
+	return "x%d" % int(WARPS[warp_index])
+
+
+func toggle_map() -> void:
+	map_visible = not map_visible
+
+
+func set_throttle_level(value: float) -> void:
+	throttle = clampf(value, 0.0, 1.0)
+
+
+func toggle_full_throttle() -> void:
+	if throttle > 0.9:
+		throttle = 0.0
+	else:
+		throttle = 1.0
 
 
 func _on_exit() -> void:
 	exit_requested.emit()
+
+
+func _draw() -> void:
+	if altitude() > 4000.0:
+		return
+	var up: Vector2 = pos.normalized()
+	var right := Vector2(-up.y, up.x)
+	var col := Color(0.62, 0.78, 0.62, 0.14)
+	var span := 2500.0
+	for i in range(-24, 25):
+		var off: Vector2 = right * (float(i) * 100.0)
+		draw_line(pos + off - up * span, pos + off + up * span, col, 1.0)
+	for i in range(-12, 13):
+		var off2: Vector2 = up * (float(i) * 100.0)
+		draw_line(pos + off2 - right * span, pos + off2 + right * span, col, 1.0)
