@@ -118,9 +118,6 @@ jobs:
           mkdir -p ci
           .tools/godot --headless --path . --import 2>&1 | tee ci/import.log
 
-      - name: Install Android build template
-        run: .tools/godot --headless --path . --install-android-build-template 2>&1 | tee ci/template.log
-
       - name: Smoke test (menu)
         run: |
           OUT=$(timeout 90 .tools/godot --headless --path . --quit-after 150 2>&1) || true
