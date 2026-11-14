@@ -13,6 +13,7 @@ const StarfieldShader := preload("res://shaders/starfield.gdshader")
 
 const PAD := 8.0
 const WARPS := [1, 5, 20, 100]
+const SAS_NAMES := ["关闭", "顺行", "逆行", "径向", "固定"]
 
 var bodies: Array = []
 var planet_nodes: Array = []
@@ -34,6 +35,8 @@ var orbit_el := {}
 var status_text := ""
 var target_id := ""
 var yaw_input := 0.0
+var sas_index := 0
+var sas_hold := 0.0
 
 var zoom_level := 8.0
 var ship_height := 20.0
@@ -234,16 +237,50 @@ func _handle_input(delta: float) -> void:
 		throttle = 0.0
 
 	var torque := 0.0
+	var manual := false
 	if Input.is_action_pressed("yaw_left"):
 		torque -= 3.2
+		manual = true
 	if Input.is_action_pressed("yaw_right"):
 		torque += 3.2
-	torque += clampf(yaw_input, -1.0, 1.0) * 3.8
-	angv += torque * delta
-	if absf(torque) < 0.001 and Game.is_assist("gyro"):
+		manual = true
+	if absf(yaw_input) > 0.04:
+		torque += clampf(yaw_input, -1.0, 1.0) * 3.8
+		manual = true
+
+	if manual:
+		angv += torque * delta
+	elif sas_index > 0:
+		var diff: float = wrapf(sas_target_angle() - rot, -PI, PI)
+		angv = lerpf(angv, clampf(diff * 2.6, -1.6, 1.6), clampf(delta * 6.0, 0.0, 1.0))
+	elif Game.is_assist("gyro"):
 		angv = lerpf(angv, 0.0, clampf(delta * 2.0, 0.0, 1.0))
+
 	angv = clampf(angv, -1.7, 1.7)
 	rot += angv * delta
+
+
+func sas_target_angle() -> float:
+	match sas_index:
+		1:
+			return atan2(vel.y, vel.x) + PI * 0.5
+		2:
+			return atan2(-vel.y, -vel.x) + PI * 0.5
+		3:
+			return atan2(pos.y, pos.x) + PI * 0.5
+		4:
+			return sas_hold
+	return rot
+
+
+func cycle_sas() -> void:
+	sas_index = (sas_index + 1) % SAS_NAMES.size()
+	if sas_index == 4:
+		sas_hold = rot
+
+
+func sas_text() -> String:
+	return "SAS %s" % String(SAS_NAMES[sas_index])
 
 
 func _step(dt: float) -> void:

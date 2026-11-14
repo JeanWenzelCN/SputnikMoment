@@ -23,6 +23,7 @@ var _status: Label
 var _stick = null
 var _slider = null
 var _map = null
+var _sas_btn = null
 var _map_buttons: Control
 var _panel = null
 
@@ -122,14 +123,24 @@ func _build() -> void:
 	_slider.value_changed.connect(_on_throttle)
 
 	# 分离按钮（底部中间）
-	var sep := UI.pad_button("分离", 18)
-	sep.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	sep.offset_left = -72.0
-	sep.offset_top = -78.0
-	sep.offset_right = 72.0
-	sep.offset_bottom = -28.0
+	var mid := HBoxContainer.new()
+	mid.add_theme_constant_override("separation", 8)
+	mid.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	mid.offset_left = -150.0
+	mid.offset_top = -78.0
+	mid.offset_right = 150.0
+	mid.offset_bottom = -28.0
+	add_child(mid)
+
+	_sas_btn = UI.pad_button("SAS 关闭", 15)
+	_sas_btn.custom_minimum_size = Vector2(146, 50)
+	_sas_btn.pressed.connect(_on_sas)
+	mid.add_child(_sas_btn)
+
+	var sep := UI.pad_button("分离", 17)
+	sep.custom_minimum_size = Vector2(146, 50)
 	sep.pressed.connect(_on_separate)
-	add_child(sep)
+	mid.add_child(sep)
 
 	# 右上角设置/返回/加速
 	var top2 := HBoxContainer.new()
@@ -245,6 +256,7 @@ func _process(_delta: float) -> void:
 	_objective.text = "目标  ·  %s" % view.current_objective()
 	_status.text = view.status_text if view.alive else "箭体损毁"
 	_slider.set_value(view.throttle)
+	_sas_btn.text = view.sas_text()
 
 	if String(view.target_id) == "":
 		_target.text = ""
@@ -267,6 +279,10 @@ func _process(_delta: float) -> void:
 
 func _on_separate() -> void:
 	view.do_separate()
+
+
+func _on_sas() -> void:
+	view.cycle_sas()
 
 
 func _on_map() -> void:

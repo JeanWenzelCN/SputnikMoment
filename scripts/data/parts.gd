@@ -1,64 +1,64 @@
 extends RefCounted
-## 零件表：质量 kg，推力 N，比冲 s，尺寸 m；美术走 SVG。
+## 零件表：质量 kg，推力 N，比冲 s，尺寸 m。数值按 SFS 手感标定。
 
 const DEFS := {
 	"pod": {
 		"name": "指令舱",
-		"dry": 900.0, "fuel": 0.0, "thrust": 0.0, "isp": 0.0,
+		"dry": 800.0, "fuel": 0.0, "thrust": 0.0, "isp": 0.0,
 		"w": 1.8, "h": 2.0, "kind": "pod",
 		"tex": "res://assets/parts/pod.svg",
 	},
 	"tank_s": {
 		"name": "燃料罐·小",
-		"dry": 260.0, "fuel": 1800.0, "thrust": 0.0, "isp": 0.0,
+		"dry": 250.0, "fuel": 2000.0, "thrust": 0.0, "isp": 0.0,
 		"w": 1.8, "h": 2.4, "kind": "tank",
 		"tex": "res://assets/parts/tank_s.svg",
 	},
 	"tank_m": {
 		"name": "燃料罐·中",
-		"dry": 520.0, "fuel": 4200.0, "thrust": 0.0, "isp": 0.0,
+		"dry": 500.0, "fuel": 4500.0, "thrust": 0.0, "isp": 0.0,
 		"w": 2.4, "h": 4.0, "kind": "tank",
 		"tex": "res://assets/parts/tank_m.svg",
 	},
 	"tank_l": {
 		"name": "燃料罐·大",
-		"dry": 980.0, "fuel": 8600.0, "thrust": 0.0, "isp": 0.0,
+		"dry": 1000.0, "fuel": 9000.0, "thrust": 0.0, "isp": 0.0,
 		"w": 3.2, "h": 6.2, "kind": "tank",
 		"tex": "res://assets/parts/tank_l.svg",
 	},
 	"eng_s": {
 		"name": "引擎·小型",
-		"dry": 210.0, "fuel": 0.0, "thrust": 62000.0, "isp": 250.0,
+		"dry": 200.0, "fuel": 0.0, "thrust": 80000.0, "isp": 260.0,
 		"w": 1.4, "h": 1.4, "kind": "engine",
 		"tex": "res://assets/parts/eng_s.svg",
 	},
 	"eng_m": {
 		"name": "引擎·中型",
-		"dry": 470.0, "fuel": 0.0, "thrust": 215000.0, "isp": 285.0,
+		"dry": 470.0, "fuel": 0.0, "thrust": 250000.0, "isp": 290.0,
 		"w": 2.0, "h": 1.8, "kind": "engine",
 		"tex": "res://assets/parts/eng_m.svg",
 	},
 	"eng_l": {
 		"name": "引擎·重型",
-		"dry": 1350.0, "fuel": 0.0, "thrust": 690000.0, "isp": 305.0,
+		"dry": 1400.0, "fuel": 0.0, "thrust": 720000.0, "isp": 310.0,
 		"w": 2.8, "h": 2.4, "kind": "engine",
 		"tex": "res://assets/parts/eng_l.svg",
 	},
 	"sep": {
 		"name": "级间分离器",
-		"dry": 70.0, "fuel": 0.0, "thrust": 0.0, "isp": 0.0,
+		"dry": 60.0, "fuel": 0.0, "thrust": 0.0, "isp": 0.0,
 		"w": 1.8, "h": 0.5, "kind": "sep",
 		"tex": "res://assets/parts/sep.svg",
 	},
 	"chute": {
 		"name": "降落伞",
-		"dry": 90.0, "fuel": 0.0, "thrust": 0.0, "isp": 0.0,
+		"dry": 80.0, "fuel": 0.0, "thrust": 0.0, "isp": 0.0,
 		"w": 1.6, "h": 0.7, "kind": "chute",
 		"tex": "res://assets/parts/chute.svg",
 	},
 	"legs": {
 		"name": "着陆支架",
-		"dry": 120.0, "fuel": 0.0, "thrust": 0.0, "isp": 0.0,
+		"dry": 110.0, "fuel": 0.0, "thrust": 0.0, "isp": 0.0,
 		"w": 2.6, "h": 0.8, "kind": "legs",
 		"tex": "res://assets/parts/legs.svg",
 	},
