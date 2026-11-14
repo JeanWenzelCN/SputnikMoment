@@ -91,18 +91,45 @@ jobs:
 
       - name: Configure Godot editor settings
         run: |
-          mkdir -p "$HOME/.config/godot"
-          cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
-          [gd_resource type="EditorSettings" format=3]
+          mkdir -p ci
+          .tools/godot --headless --editor --path . --quit > /dev/null 2>&1 || true
+          python3 - <<'PY'
+          import glob, os
 
-          [resource]
-          export/android/android_sdk_path = "${ANDROID_HOME}"
-          export/android/java_sdk_path = "${JAVA_HOME}"
-          export/android/debug_keystore = "${HOME}/.android/debug.keystore"
-          export/android/debug_keystore_user = "androiddebugkey"
-          export/android/debug_keystore_pass = "android"
-          EOF
-          cp "$HOME/.config/godot/editor_settings-4.tres" ci/editor_settings.tres
+          home = os.environ["HOME"]
+          sdk = os.environ.get("ANDROID_HOME", "")
+          java = os.environ.get("JAVA_HOME", "")
+          ks = os.path.join(home, ".android", "debug.keystore")
+
+          files = sorted(glob.glob(os.path.join(home, ".config", "godot", "editor_settings-4*.tres")))
+          path = files[0] if files else os.path.join(home, ".config", "godot", "editor_settings-4.4.tres")
+          os.makedirs(os.path.dirname(path), exist_ok=True)
+
+          text = ""
+          if os.path.exists(path):
+              with open(path) as handle:
+                  text = handle.read()
+          if "[resource]" not in text:
+              text = '[gd_resource type="EditorSettings" format=3]\n\n[resource]\n'
+
+          values = {
+              "export/android/android_sdk_path": sdk,
+              "export/android/java_sdk_path": java,
+              "export/android/debug_keystore": ks,
+              "export/android/debug_keystore_user": "androiddebugkey",
+              "export/android/debug_keystore_pass": "android",
+          }
+          for key, value in values.items():
+              if key + " =" in text:
+                  continue
+              text += '%s = "%s"\n' % (key, value)
+
+          with open(path, "w") as handle:
+              handle.write(text)
+          print("editor settings:", path)
+          print(text)
+          PY
+          cp "$HOME/.config/godot/"editor_settings-4*.tres ci/editor_settings.tres
 
       - name: Create debug keystore
         run: |
@@ -141,7 +168,7 @@ jobs:
           mkdir -p build ci
           {
             echo "--- editor settings ---"
-            cat "$HOME/.config/godot/editor_settings-4.tres"
+            cat "$HOME/.config/godot/"editor_settings-4*.tres
             echo "--- keystore ---"
             ls -la "$HOME/.android"
             echo "--- templates ---"
