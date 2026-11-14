@@ -1,0 +1,32 @@
+; Engine configuration file.
+; Sputnik Moment - cold war orbital flight sandbox.
+
+config_version=5
+
+[application]
+
+config/name="Sputnik Moment"
+config/description="Cold War era orbital flight sandbox."
+config/version="0.1.0"
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.4", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[autoload]
+
+Game="*res://scripts/game.gd"
+Keys="*res://scripts/keys.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=0
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.031, 0.039, 0.043, 1)
