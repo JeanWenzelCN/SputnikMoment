@@ -1,5 +1,5 @@
 extends Node2D
-## 飞行场景：太阳系多天体、固定缩放 + 手动缩放、级间分离特效、目标清单。
+## 飞行场景：日心太阳系 + SOI 参考系、固定/手动缩放、目标标记与转移估算。
 
 signal exit_requested
 
@@ -13,14 +13,14 @@ const StarfieldShader := preload("res://shaders/starfield.gdshader")
 
 const PAD := 8.0
 const WARPS := [1, 5, 20, 100]
-const START_BODY := "earth"
 
 var bodies: Array = []
 var planet_nodes: Array = []
+var ref: Dictionary = {}
 var vehicle = null
 var hud = null
 
-var pos := Vector2(0.0, -608008.0)
+var pos := Vector2.ZERO
 var vel := Vector2.ZERO
 var rot := 0.0
 var angv := 0.0
@@ -32,25 +32,31 @@ var warp_index := 0
 var map_visible := false
 var orbit_el := {}
 var status_text := ""
-var current_body_id := START_BODY
+var target_id := ""
+var yaw_input := 0.0
 
 var zoom_level := 8.0
 var ship_height := 20.0
 var shake := 0.0
 var flashes: Array = []
-var yaw_input := 0.0
 
 var objectives: Array = []
 var _orbit_timer := 0.0
+var _soi_timer := 0.0
 
 
 func _ready() -> void:
 	Game.ensure_design()
 	bodies = Solar.build()
 	Solar.update_positions(bodies, 0.0)
+	ref = Solar.find_body(bodies, "earth")
+
+	pos = Vector2(0.0, -(float(ref["radius"]) + PAD))
+	vel = Vector2.ZERO
 
 	_build_backdrop()
 	_build_planets()
+	_sync_planet_positions()
 
 	vehicle = Vehicle.new()
 	vehicle.z_index = 5
@@ -77,33 +83,20 @@ func _ready() -> void:
 		{"text": "在其他天体着陆", "done": false},
 	]
 
-	orbit_el = Orbit.elements(pos - body_pos(START_BODY), vel, body_mu(START_BODY))
+	_refresh_orbit()
 	_update_view(1.0)
 
 
-func body_pos(id: String) -> Vector2:
-	for b in bodies:
-		if String(b["id"]) == id:
-			return b["pos"]
-	return Vector2.ZERO
-
-
-func body_mu(id: String) -> float:
-	for b in bodies:
-		if String(b["id"]) == id:
-			return float(b["mu"])
-	return 1.0
-
-
 func get_body(id: String) -> Dictionary:
-	for b in bodies:
-		if String(b["id"]) == id:
-			return b
-	return {}
+	return Solar.find_body(bodies, id)
 
 
 func dominant_body() -> Dictionary:
-	return Solar.dominant(bodies, pos)
+	return ref
+
+
+func world_pos() -> Vector2:
+	return Vector2(ref["pos"]) + pos
 
 
 func _build_backdrop() -> void:
@@ -131,15 +124,23 @@ func _build_planets() -> void:
 		sprite.texture = tex
 		sprite.centered = true
 		var radius: float = float(b["radius"])
-		sprite.scale = Vector2(radius * 1.4, radius * 1.4)
+		sprite.scale = Vector2(radius * 1.25, radius * 1.25)
 		sprite.z_index = -2
 		var mat := ShaderMaterial.new()
 		mat.shader = PlanetShader
 		var col: Color = b["color"]
 		mat.set_shader_parameter("surface_tint", Vector3(col.r, col.g, col.b))
+		if String(b["id"]) == "sun":
+			mat.set_shader_parameter("smooth", 1.0)
 		sprite.material = mat
 		add_child(sprite)
 		planet_nodes.append(sprite)
+
+
+func _sync_planet_positions() -> void:
+	var rp: Vector2 = ref["pos"]
+	for i in range(bodies.size()):
+		planet_nodes[i].position = Vector2(bodies[i]["pos"]) - rp
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -187,8 +188,8 @@ func _physics_process(delta: float) -> void:
 	elapsed += total
 
 	Solar.update_positions(bodies, elapsed)
-	for i in range(bodies.size()):
-		planet_nodes[i].position = Vector2(bodies[i]["pos"])
+	_update_ref()
+	_sync_planet_positions()
 
 	if distance_to_surface() > 1.0:
 		landed = false
@@ -207,10 +208,20 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 
+func _update_ref() -> void:
+	var wp := world_pos()
+	var nb: Dictionary = Solar.ref_body(bodies, wp)
+	if String(nb["id"]) == String(ref["id"]):
+		return
+	var world_vel: Vector2 = Vector2(ref["vel"]) + vel
+	pos = wp - Vector2(nb["pos"])
+	vel = world_vel - Vector2(nb["vel"])
+	ref = nb
+	status_text = "进入%s引力范围" % String(nb["name"])
+
+
 func _refresh_orbit() -> void:
-	var dom: Dictionary = dominant_body()
-	current_body_id = String(dom["id"])
-	orbit_el = Orbit.elements(pos - Vector2(dom["pos"]), vel, float(dom["mu"]))
+	orbit_el = Orbit.elements(pos, vel, float(ref["mu"]))
 
 
 func _handle_input(delta: float) -> void:
@@ -236,12 +247,8 @@ func _handle_input(delta: float) -> void:
 
 
 func _step(dt: float) -> void:
-	var dom: Dictionary = dominant_body()
-	var center: Vector2 = dom["pos"]
-	var radius: float = float(dom["radius"])
-	var rel: Vector2 = pos - center
-	var r: float = maxf(rel.length(), radius * 0.3)
-	var accel: Vector2 = -rel.normalized() * (float(dom["mu"]) / (r * r))
+	var r: float = maxf(pos.length(), float(ref["radius"]) * 0.3)
+	var accel: Vector2 = -pos.normalized() * (float(ref["mu"]) / (r * r))
 
 	var thrust: float = vehicle.current_thrust()
 	var fuel_ok: bool = Game.is_cheat("infinite_fuel") or vehicle.current_fuel() > 0.0
@@ -252,8 +259,8 @@ func _step(dt: float) -> void:
 		accel += Vector2.UP.rotated(rot) * (force / vehicle.mass())
 		vehicle.burn(dt)
 
-	var alt: float = rel.length() - radius
-	var atmo: float = float(dom["atmo"])
+	var alt: float = pos.length() - float(ref["radius"])
+	var atmo: float = float(ref["atmo"])
 	if atmo > 0.0 and alt < atmo and alt > 0.0:
 		var rho: float = 1.225 * exp(-alt / 8500.0)
 		var spd: float = vel.length()
@@ -267,8 +274,7 @@ func _step(dt: float) -> void:
 
 
 func distance_to_surface() -> float:
-	var dom: Dictionary = dominant_body()
-	return (pos - Vector2(dom["pos"])).length() - float(dom["radius"]) - PAD
+	return pos.length() - float(ref["radius"]) - PAD
 
 
 func altitude() -> float:
@@ -284,26 +290,21 @@ func speed() -> float:
 
 
 func _check_surface() -> void:
-	for b in bodies:
-		var center: Vector2 = b["pos"]
-		var rel: Vector2 = pos - center
-		var dist: float = rel.length()
-		var floor_r: float = float(b["radius"]) + PAD
-		if dist >= floor_r:
-			continue
-		var nrm: Vector2 = rel.normalized()
-		var radial: float = vel.dot(nrm)
-		if radial < -13.0 and not Game.is_cheat("hull"):
-			_crash()
-			return
-		pos = center + nrm * floor_r
-		vel -= nrm * radial
-		if radial < -1.0:
-			landed = true
-			status_text = "在%s着陆" % String(b["name"])
-		elif vel.length() < 2.0:
-			landed = true
+	var floor_r: float = float(ref["radius"]) + PAD
+	if pos.length() >= floor_r:
 		return
+	var nrm: Vector2 = pos.normalized()
+	var radial: float = vel.dot(nrm)
+	if radial < -13.0 and not Game.is_cheat("hull"):
+		_crash()
+		return
+	pos = nrm * floor_r
+	vel -= nrm * radial
+	if radial < -1.0:
+		landed = true
+		status_text = "在%s着陆" % String(ref["name"])
+	elif vel.length() < 2.0:
+		landed = true
 
 
 func _crash() -> void:
@@ -362,6 +363,49 @@ func toggle_full_throttle() -> void:
 		throttle = 1.0
 
 
+func set_target(id: String) -> void:
+	if String(ref["id"]) == id:
+		target_id = ""
+		return
+	target_id = id
+
+
+## 目标距离（米）与相对速度（米/秒）。
+func target_distance() -> float:
+	if target_id.is_empty():
+		return 0.0
+	var tb: Dictionary = get_body(target_id)
+	if tb.is_empty():
+		return 0.0
+	return (world_pos() - Vector2(tb["pos"])).length()
+
+
+func target_rel_speed() -> float:
+	if target_id.is_empty():
+		return 0.0
+	var tb: Dictionary = get_body(target_id)
+	if tb.is_empty():
+		return 0.0
+	var abs_vel: Vector2 = Vector2(ref["vel"]) + vel
+	return (abs_vel - Vector2(tb["vel"])).length()
+
+
+## 霍曼转移第一段 Δv（仅当目标与飞船绕同一天体时有效）。
+func transfer_dv() -> float:
+	if target_id.is_empty():
+		return -1.0
+	var tb: Dictionary = get_body(target_id)
+	if tb.is_empty():
+		return -1.0
+	var r1: float = pos.length()
+	var rel: Vector2 = Vector2(tb["pos"]) - Vector2(ref["pos"])
+	var r2: float = rel.length()
+	if r1 <= 0.0 or r2 <= 0.0 or r2 > float(ref["soi"]):
+		return -1.0
+	var mu: float = float(ref["mu"])
+	return sqrt(mu / r1) * (sqrt(2.0 * r2 / (r1 + r2)) - 1.0)
+
+
 func current_objective() -> String:
 	for o in objectives:
 		if not bool(o["done"]):
@@ -370,7 +414,6 @@ func current_objective() -> String:
 
 
 func _check_objectives() -> void:
-	var dom: Dictionary = dominant_body()
 	var alt: float = altitude()
 
 	if not bool(objectives[0]["done"]) and alt > 1000.0:
@@ -384,18 +427,17 @@ func _check_objectives() -> void:
 	if not bool(objectives[2]["done"]):
 		var peri: float = float(orbit_el.get("peri", 0.0))
 		var e: float = float(orbit_el.get("e", 2.0))
-		if e < 1.0 and peri - float(dom["radius"]) > 70000.0:
+		if e < 1.0 and peri - float(ref["radius"]) > 70000.0:
 			objectives[2]["done"] = true
 			status_text = "目标完成：进入轨道"
 
 	if not bool(objectives[3]["done"]):
 		var moon: Dictionary = get_body("moon")
-		if not moon.is_empty():
-			if (pos - Vector2(moon["pos"])).length() < 1500000.0:
-				objectives[3]["done"] = true
-				status_text = "目标完成：接近月球"
+		if not moon.is_empty() and (world_pos() - Vector2(moon["pos"])).length() < 700000.0:
+			objectives[3]["done"] = true
+			status_text = "目标完成：接近月球"
 
-	if not bool(objectives[4]["done"]) and landed and String(dom["id"]) != START_BODY:
+	if not bool(objectives[4]["done"]) and landed and String(ref["id"]) != "earth":
 		objectives[4]["done"] = true
 		status_text = "目标完成：异地着陆"
 
@@ -422,33 +464,30 @@ func _draw() -> void:
 		draw_circle(origin, rad * 0.55, Color(1.0, 0.72, 0.32, (1.0 - k) * 0.35))
 		i -= 1
 
-	# 发射台
-	var earth: Dictionary = get_body("earth")
-	if not earth.is_empty() and altitude() < 400.0:
-		var ebase: Vector2 = Vector2(earth["pos"]) + Vector2(0.0, -1.0) * (float(earth["radius"]) + PAD)
-		var up: Vector2 = (ebase - Vector2(earth["pos"])).normalized()
+	# 发射台（只在地球且低空）
+	if String(ref["id"]) == "earth" and altitude() < 400.0:
+		var up: Vector2 = pos.normalized()
 		var right := Vector2(-up.y, up.x)
+		var ebase: Vector2 = up * (float(ref["radius"]) + PAD)
 		var p0: Vector2 = ebase + right * 9.0 - up * 0.5
 		var p1: Vector2 = ebase - right * 9.0 - up * 0.5
 		var p2: Vector2 = ebase - right * 9.0 - up * 3.5
 		var p3: Vector2 = ebase + right * 9.0 - up * 3.5
-		draw_colored_polygon(PackedVector2Array([p0, p1, p2, p3]), Color(0.19, 0.20, 0.20))
+		draw_colored_polygon(PackedVector2Array([p0, p1, p2, p3]), Color(0.17, 0.18, 0.18))
 		draw_line(p0, p1, Color(0.85, 0.64, 0.25, 0.55), 1.2)
-		draw_line(p1, p2, Color(0.10, 0.11, 0.11), 1.0)
-		draw_line(p3, p2, Color(0.10, 0.11, 0.11), 1.0)
 
-	# 地面网格（只在低空）
+	# 地面网格
 	if altitude() < 3000.0:
-		var up: Vector2 = (pos - Vector2(dominant_body()["pos"])).normalized()
-		var right := Vector2(-up.y, up.x)
-		var col := Color(0.60, 0.72, 0.62, 0.13)
+		var up2: Vector2 = pos.normalized()
+		var right2 := Vector2(-up2.y, up2.x)
+		var col := Color(0.55, 0.68, 0.58, 0.12)
 		var span := 2500.0
 		for n in range(-20, 21):
-			var off: Vector2 = right * (float(n) * 100.0)
-			draw_line(pos + off - up * span, pos + off + up * span, col, 1.0)
+			var off: Vector2 = right2 * (float(n) * 100.0)
+			draw_line(pos + off - up2 * span, pos + off + up2 * span, col, 1.0)
 		for n in range(-10, 11):
-			var off2: Vector2 = up * (float(n) * 100.0)
-			draw_line(pos + off2 - right * span, pos + off2 + right * span, col, 1.0)
+			var off2: Vector2 = up2 * (float(n) * 100.0)
+			draw_line(pos + off2 - right2 * span, pos + off2 + right2 * span, col, 1.0)
 
 	# 缩得太小时的飞船定位标记
 	if zoom_level * 12.0 < 10.0:
@@ -457,3 +496,16 @@ func _draw() -> void:
 		draw_arc(pos, rr, 0.0, TAU, 24, Color(0.92, 0.94, 0.96, 0.85), lw, true)
 		draw_line(pos - Vector2(rr * 1.7, 0.0), pos - Vector2(rr * 0.6, 0.0), Color(0.92, 0.94, 0.96, 0.85), lw)
 		draw_line(pos + Vector2(rr * 0.6, 0.0), pos + Vector2(rr * 1.7, 0.0), Color(0.92, 0.94, 0.96, 0.85), lw)
+
+	# 目标方向指示
+	if not target_id.is_empty() and alive:
+		var tb: Dictionary = get_body(target_id)
+		if not tb.is_empty():
+			var rel: Vector2 = (Vector2(tb["pos"]) - Vector2(ref["pos"])) - pos
+			if rel.length() > 1.0:
+				var dir: Vector2 = rel.normalized()
+				var r_mark: float = 60.0 / zoom_level
+				var p_a: Vector2 = pos + dir * r_mark
+				var p_b: Vector2 = pos + dir * (r_mark * 0.82)
+				var side := Vector2(-dir.y, dir.x) * (r_mark * 0.12)
+				draw_colored_polygon(PackedVector2Array([p_a, p_b + side, p_b - side]), Color(0.55, 0.88, 0.72, 0.9))

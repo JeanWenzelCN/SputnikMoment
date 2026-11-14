@@ -7,6 +7,7 @@ uniform vec3 highland_color : source_color = vec3(0.443, 0.412, 0.310);
 uniform vec3 ice_color : source_color = vec3(0.780, 0.800, 0.790);
 uniform vec3 atmo_color : source_color = vec3(0.350, 0.600, 0.720);
 uniform vec3 surface_tint : source_color = vec3(1.0, 1.0, 1.0);
+uniform float smooth = 0.0;
 uniform float light_dir : hint_range(-3.15, 3.15) = -2.30;
 uniform float terrain_scale = 2.60;
 
@@ -51,10 +52,17 @@ void fragment() {
 	float r = length(uv);
 	vec3 light_vec = normalize(vec3(cos(light_dir), sin(light_dir), 0.55));
 
-	if (r > 1.0) {
-		float g = clamp((r - 1.0) / 0.40, 0.0, 1.0);
-		float a = pow(1.0 - g, 2.6) * 0.50;
-		COLOR = vec4(atmo_color * 1.1, a);
+	if (smooth > 0.5) {
+		if (r > 1.0) {
+			discard;
+		}
+		vec3 sn = vec3(uv, sqrt(max(0.0, 1.0 - r * r)));
+		vec3 scol = surface_tint * (0.85 + pow(sn.z, 1.6) * 0.9);
+		COLOR = vec4(scol, 1.0);
+	} else if (r > 1.0) {
+		float g = clamp((r - 1.0) / 0.06, 0.0, 1.0);
+		float a = pow(1.0 - g, 3.0) * 0.30;
+		COLOR = vec4(atmo_color, a);
 	} else {
 		vec3 n = vec3(uv, sqrt(max(0.0, 1.0 - r * r)));
 		vec3 sp = n * terrain_scale;

@@ -18,6 +18,7 @@ var _fuel: Label
 var _apo: Label
 var _peri: Label
 var _objective: Label
+var _target: Label
 var _status: Label
 var _stick = null
 var _slider = null
@@ -84,6 +85,11 @@ func _build() -> void:
 	_objective.offset_bottom = 50.0
 	_objective.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_objective)
+
+	# 导航目标
+	_target = UI.label("", 13, UI.GREEN)
+	UI.at(_target, Vector2(30, 112), Vector2(460, 22))
+	add_child(_target)
 
 	# 状态提示
 	_status = UI.label("", 19, UI.GOLD)
@@ -239,6 +245,19 @@ func _process(_delta: float) -> void:
 	_objective.text = "目标  ·  %s" % view.current_objective()
 	_status.text = view.status_text if view.alive else "箭体损毁"
 	_slider.set_value(view.throttle)
+
+	if String(view.target_id) == "":
+		_target.text = ""
+	else:
+		var tb: Dictionary = view.get_body(String(view.target_id))
+		if tb.is_empty():
+			_target.text = ""
+		else:
+			var line := "导航：%s   %.0f km   %.0f m/s" % [String(tb["name"]), view.target_distance() / 1000.0, view.target_rel_speed()]
+			var dv: float = view.transfer_dv()
+			if dv > 0.0:
+				line += "   转移 Δv %.0f" % dv
+			_target.text = line
 
 	_map.visible = view.map_visible
 	_map_buttons.visible = view.map_visible

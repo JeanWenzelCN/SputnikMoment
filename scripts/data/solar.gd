@@ -1,32 +1,36 @@
 extends RefCounted
-## 太阳系天体表（缩比尺度，单位米）。地球在原点，其余按圆轨道绕地球运行。
-
-const G := 9.80665
+## 日心太阳系：太阳在原点，行星绕太阳，月球绕地球。带 SOI 参考系切换。
 
 const BODIES := [
 	{
-		"id": "earth", "name": "地球",
-		"radius": 600000.0, "g0": 9.80665, "atmo": 70000.0,
+		"id": "sun", "name": "太阳", "parent": "",
+		"radius": 2000000.0, "g0": 274.0, "soi": 0.0, "atmo": 0.0,
 		"orbit_r": 0.0, "orbit_period": 0.0,
-		"color": Color(0.32, 0.50, 0.60),
+		"color": Color(1.0, 0.78, 0.35),
 	},
 	{
-		"id": "moon", "name": "月球",
-		"radius": 160000.0, "g0": 1.62, "atmo": 0.0,
-		"orbit_r": 12000000.0, "orbit_period": 900.0,
-		"color": Color(0.62, 0.64, 0.64),
+		"id": "earth", "name": "地球", "parent": "sun",
+		"radius": 600000.0, "g0": 9.80665, "soi": 5000000.0, "atmo": 70000.0,
+		"orbit_r": 8000000.0, "orbit_period": 300.0,
+		"color": Color(0.34, 0.52, 0.62),
 	},
 	{
-		"id": "mars", "name": "火星",
-		"radius": 340000.0, "g0": 3.71, "atmo": 40000.0,
-		"orbit_r": 34000000.0, "orbit_period": 2400.0,
-		"color": Color(0.62, 0.36, 0.26),
+		"id": "moon", "name": "月球", "parent": "earth",
+		"radius": 160000.0, "g0": 1.62, "soi": 600000.0, "atmo": 0.0,
+		"orbit_r": 1600000.0, "orbit_period": 120.0,
+		"color": Color(0.63, 0.64, 0.64),
 	},
 	{
-		"id": "venus", "name": "金星",
-		"radius": 580000.0, "g0": 8.87, "atmo": 90000.0,
-		"orbit_r": 22000000.0, "orbit_period": 1800.0,
-		"color": Color(0.68, 0.60, 0.42),
+		"id": "venus", "name": "金星", "parent": "sun",
+		"radius": 580000.0, "g0": 8.87, "soi": 3500000.0, "atmo": 90000.0,
+		"orbit_r": 4500000.0, "orbit_period": 220.0,
+		"color": Color(0.70, 0.62, 0.44),
+	},
+	{
+		"id": "mars", "name": "火星", "parent": "sun",
+		"radius": 340000.0, "g0": 3.71, "soi": 3000000.0, "atmo": 40000.0,
+		"orbit_r": 14000000.0, "orbit_period": 600.0,
+		"color": Color(0.64, 0.38, 0.28),
 	},
 ]
 
@@ -36,44 +40,49 @@ static func build() -> Array:
 	for b in BODIES:
 		var body: Dictionary = b.duplicate()
 		body["mu"] = float(b["g0"]) * float(b["radius"]) * float(b["radius"])
-		body["angle"] = 0.0
 		body["pos"] = Vector2.ZERO
+		body["vel"] = Vector2.ZERO
+		body["angle"] = 0.0
 		out.append(body)
 	return out
 
 
 static func update_positions(bodies: Array, t: float) -> void:
 	for body in bodies:
-		var period: float = float(body["orbit_period"])
-		if period <= 0.0:
-			body["angle"] = 0.0
+		var parent_id := String(body["parent"])
+		if parent_id.is_empty():
 			body["pos"] = Vector2.ZERO
-		else:
-			var ang: float = TAU * t / period
-			body["angle"] = ang
-			body["pos"] = Vector2(cos(ang), sin(ang)) * float(body["orbit_r"])
+			body["vel"] = Vector2.ZERO
+			body["angle"] = 0.0
+			continue
+		var parent: Dictionary = find_body(bodies, parent_id)
+		var r: float = float(body["orbit_r"])
+		var period: float = maxf(float(body["orbit_period"]), 0.001)
+		var omega: float = TAU / period
+		var ang: float = omega * t
+		body["angle"] = ang
+		body["pos"] = Vector2(parent["pos"]) + Vector2(cos(ang), sin(ang)) * r
+		body["vel"] = Vector2(parent["vel"]) + Vector2(-sin(ang), cos(ang)) * (r * omega)
 
 
-static func nearest(bodies: Array, p: Vector2) -> Dictionary:
+static func find_body(bodies: Array, id: String) -> Dictionary:
+	for b in bodies:
+		if String(b["id"]) == id:
+			return b
+	return {}
+
+
+## 返回包含该世界坐标的最小 SOI 天体；都不在则返回太阳。
+static func ref_body(bodies: Array, world_pos: Vector2) -> Dictionary:
 	var best: Dictionary = {}
-	var best_dist := INF
-	for body in bodies:
-		var d: float = (p - Vector2(body["pos"])).length()
-		if d < best_dist:
-			best_dist = d
-			best = body
-	return best
-
-
-## 主导天体：引力加速度最大的那个（Hill 球近似）。
-static func dominant(bodies: Array, p: Vector2) -> Dictionary:
-	var best: Dictionary = {}
-	var best_force := -1.0
-	for body in bodies:
-		var d: Vector2 = p - Vector2(body["pos"])
-		var dist: float = maxf(d.length(), float(body["radius"]) * 0.35)
-		var f: float = float(body["mu"]) / (dist * dist)
-		if f > best_force:
-			best_force = f
-			best = body
+	var best_soi := INF
+	for b in bodies:
+		var soi: float = float(b["soi"])
+		if soi <= 0.0:
+			continue
+		if (world_pos - Vector2(b["pos"])).length() < soi and soi < best_soi:
+			best_soi = soi
+			best = b
+	if best.is_empty():
+		return find_body(bodies, "sun")
 	return best
