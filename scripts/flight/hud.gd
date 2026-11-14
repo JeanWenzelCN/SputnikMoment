@@ -1,11 +1,13 @@
 extends Control
-## 飞行 HUD：遥测、轨道、目标、缩放与操作。
+## 飞行 HUD：左侧姿态摇杆、右侧油门滑块、顶部遥测与操作。
 
 signal exit_requested
 
 const UI := preload("res://scripts/ui/ui_kit.gd")
 const SettingsPanel := preload("res://scripts/ui/settings_panel.gd")
 const MapView := preload("res://scripts/flight/map_view.gd")
+const Stick := preload("res://scripts/ui/virtual_stick.gd")
+const Slider := preload("res://scripts/ui/throttle_slider.gd")
 
 var view = null
 
@@ -15,15 +17,13 @@ var _vs: Label
 var _fuel: Label
 var _apo: Label
 var _peri: Label
-var _warp: Label
-
 var _objective: Label
-var _thr_fill: ColorRect
 var _status: Label
+var _stick = null
+var _slider = null
 var _map = null
 var _map_buttons: Control
 var _panel = null
-var _held: Array = []
 
 
 func _ready() -> void:
@@ -39,107 +39,105 @@ func bind(v) -> void:
 
 
 func _build() -> void:
+	# 左上遥测
 	var left := VBoxContainer.new()
 	left.add_theme_constant_override("separation", 4)
-	UI.at(left, Vector2(32, 24), Vector2(300, 150))
+	UI.at(left, Vector2(30, 22), Vector2(300, 140))
 	add_child(left)
 	_alt = _row(left, "高度", "0.0 km")
 	_spd = _row(left, "速度", "0 m/s")
 	_vs = _row(left, "垂直", "0 m/s")
 	_fuel = _row(left, "燃料", "100%")
 
+	# 右上轨道
 	var right := VBoxContainer.new()
 	right.add_theme_constant_override("separation", 4)
 	right.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	right.offset_left = -320.0
-	right.offset_top = 24.0
-	right.offset_right = -32.0
-	right.offset_bottom = 120.0
+	right.offset_left = -300.0
+	right.offset_top = 22.0
+	right.offset_right = -30.0
+	right.offset_bottom = 96.0
 	add_child(right)
 	_apo = _row_right(right, "远地点", "---")
 	_peri = _row_right(right, "近地点", "---")
 
+	# 顶部小按钮
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 6)
+	top.alignment = BoxContainer.ALIGNMENT_END
+	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	top.offset_left = -280.0
+	top.offset_top = 100.0
+	top.offset_right = -30.0
+	top.offset_bottom = 136.0
+	add_child(top)
+	top.add_child(_tap("地图", _on_map, 78, 36))
+	top.add_child(_tap("缩小", _on_zoom_out, 78, 36))
+	top.add_child(_tap("放大", _on_zoom_in, 78, 36))
+
+	# 目标
 	_objective = UI.label("", 15, UI.GOLD)
 	_objective.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	_objective.offset_left = -320.0
-	_objective.offset_top = 26.0
+	_objective.offset_top = 24.0
 	_objective.offset_right = 320.0
-	_objective.offset_bottom = 52.0
+	_objective.offset_bottom = 50.0
 	_objective.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_objective)
 
-	_status = UI.label("", 20, UI.GOLD)
+	# 状态提示
+	_status = UI.label("", 19, UI.GOLD)
 	_status.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	_status.offset_left = -300.0
-	_status.offset_top = 172.0
+	_status.offset_top = 150.0
 	_status.offset_right = 300.0
-	_status.offset_bottom = 204.0
+	_status.offset_bottom = 180.0
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_status)
 
-	# 顶部右侧小按钮
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 8)
-	top.alignment = BoxContainer.ALIGNMENT_END
-	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	top.offset_left = -300.0
-	top.offset_top = 130.0
-	top.offset_right = -32.0
-	top.offset_bottom = 168.0
-	add_child(top)
-	top.add_child(_tap("加速", _on_warp, 82, 38))
-	top.add_child(_tap("设置", _on_options, 82, 38))
-	top.add_child(_tap("返回", _on_back, 82, 38))
+	# 左下姿态摇杆
+	_stick = Stick.new()
+	_stick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	_stick.offset_left = 24.0
+	_stick.offset_top = -276.0
+	_stick.offset_right = 264.0
+	_stick.offset_bottom = -36.0
+	add_child(_stick)
+	_stick.vector_changed.connect(_on_stick)
 
-	# 左下油门
-	var thr := VBoxContainer.new()
-	thr.add_theme_constant_override("separation", 6)
-	thr.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	thr.offset_left = 32.0
-	thr.offset_top = -76.0
-	thr.offset_right = 320.0
-	thr.offset_bottom = -24.0
-	add_child(thr)
-	thr.add_child(UI.label("油门", 12, UI.DIM))
+	# 右下油门滑块
+	_slider = Slider.new()
+	_slider.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	_slider.offset_left = -118.0
+	_slider.offset_top = -300.0
+	_slider.offset_right = -40.0
+	_slider.offset_bottom = -40.0
+	add_child(_slider)
+	_slider.value_changed.connect(_on_throttle)
 
-	var track := ColorRect.new()
-	track.color = Color(1, 1, 1, 0.10)
-	track.custom_minimum_size = Vector2(280, 10)
-	track.size = Vector2(280, 10)
-	thr.add_child(track)
+	# 分离按钮（底部中间）
+	var sep := UI.pad_button("分离", 18)
+	sep.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	sep.offset_left = -72.0
+	sep.offset_top = -78.0
+	sep.offset_right = 72.0
+	sep.offset_bottom = -28.0
+	sep.pressed.connect(_on_separate)
+	add_child(sep)
 
-	_thr_fill = ColorRect.new()
-	_thr_fill.color = UI.GOLD
-	_thr_fill.position = Vector2.ZERO
-	_thr_fill.size = Vector2(0, 10)
-	track.add_child(_thr_fill)
-
-	# 右下操作网格 3x3
-	var pad := VBoxContainer.new()
-	pad.add_theme_constant_override("separation", 8)
-	UI.at_bottom_right(pad, Vector2(24, 20), Vector2(268, 164))
-	add_child(pad)
-
-	var row1 := HBoxContainer.new()
-	row1.add_theme_constant_override("separation", 8)
-	row1.add_child(_tap("缩小", _on_zoom_out, 84, 48))
-	row1.add_child(_tap("放大", _on_zoom_in, 84, 48))
-	row1.add_child(_tap("地图", _on_map, 84, 48))
-	pad.add_child(row1)
-
-	var row2 := HBoxContainer.new()
-	row2.add_theme_constant_override("separation", 8)
-	row2.add_child(_hold("左转", "yaw_left", 84, 48))
-	row2.add_child(_hold("右转", "yaw_right", 84, 48))
-	row2.add_child(_tap("分离", _on_separate, 84, 48))
-	pad.add_child(row2)
-
-	var row3 := HBoxContainer.new()
-	row3.add_theme_constant_override("separation", 8)
-	row3.add_child(_hold("推力-", "throttle_down", 84, 48))
-	row3.add_child(_hold("推力+", "throttle_up", 84, 48))
-	row3.add_child(_tap("全推", _on_full, 84, 48))
-	pad.add_child(row3)
+	# 右上角设置/返回/加速
+	var top2 := HBoxContainer.new()
+	top2.add_theme_constant_override("separation", 6)
+	top2.alignment = BoxContainer.ALIGNMENT_END
+	top2.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	top2.offset_left = -212.0
+	top2.offset_top = 142.0
+	top2.offset_right = -30.0
+	top2.offset_bottom = 176.0
+	add_child(top2)
+	top2.add_child(_tap("加速", _on_warp, 56, 34))
+	top2.add_child(_tap("设置", _on_options, 56, 34))
+	top2.add_child(_tap("返回", _on_back, 56, 34))
 
 	_map = MapView.new()
 	_map.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -150,19 +148,16 @@ func _build() -> void:
 	_map_buttons = HBoxContainer.new()
 	_map_buttons.add_theme_constant_override("separation", 8)
 	_map_buttons.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	_map_buttons.offset_left = -220.0
-	_map_buttons.offset_top = 24.0
-	_map_buttons.offset_right = -32.0
-	_map_buttons.offset_bottom = 64.0
+	_map_buttons.offset_left = -212.0
+	_map_buttons.offset_top = 22.0
+	_map_buttons.offset_right = -30.0
+	_map_buttons.offset_bottom = 62.0
 	_map_buttons.visible = false
 	add_child(_map_buttons)
 
 	var full := _tap("全图", _on_full_map, 84, 40)
-	full.add_theme_font_size_override("font_size", 14)
 	_map_buttons.add_child(full)
-
 	var close := _tap("关闭", _on_map, 84, 40)
-	close.add_theme_font_size_override("font_size", 14)
 	_map_buttons.add_child(close)
 
 
@@ -196,31 +191,21 @@ func _row_right(parent: Node, key: String, value: String) -> Label:
 
 
 func _tap(text: String, cb: Callable, w: int, h: int) -> Button:
-	var b := UI.pad_button(text, 15)
+	var b := UI.pad_button(text, 14)
 	b.custom_minimum_size = Vector2(w, h)
 	b.size = Vector2(w, h)
 	b.pressed.connect(cb)
 	return b
 
 
-func _hold(text: String, action: String, w: int, h: int) -> Button:
-	var b := UI.pad_button(text, 15)
-	b.custom_minimum_size = Vector2(w, h)
-	b.size = Vector2(w, h)
-	b.button_down.connect(_press.bind(action))
-	b.button_up.connect(_release.bind(action))
-	return b
+func _on_stick(v: Vector2) -> void:
+	if view != null:
+		view.yaw_input = v.x
 
 
-func _press(action: String) -> void:
-	if not _held.has(action):
-		_held.append(action)
-	Input.action_press(action)
-
-
-func _release(action: String) -> void:
-	Input.action_release(action)
-	_held.erase(action)
+func _on_throttle(v: float) -> void:
+	if view != null:
+		view.throttle = v
 
 
 func _process(_delta: float) -> void:
@@ -253,7 +238,7 @@ func _process(_delta: float) -> void:
 
 	_objective.text = "目标  ·  %s" % view.current_objective()
 	_status.text = view.status_text if view.alive else "箭体损毁"
-	_thr_fill.size = Vector2(280.0 * clampf(view.throttle, 0.0, 1.0), 10.0)
+	_slider.set_value(view.throttle)
 
 	_map.visible = view.map_visible
 	_map_buttons.visible = view.map_visible
@@ -263,10 +248,6 @@ func _process(_delta: float) -> void:
 
 func _on_separate() -> void:
 	view.do_separate()
-
-
-func _on_full() -> void:
-	view.toggle_full_throttle()
 
 
 func _on_map() -> void:
@@ -303,9 +284,3 @@ func _on_panel_closed() -> void:
 
 func _on_back() -> void:
 	exit_requested.emit()
-
-
-func _exit_tree() -> void:
-	for action in _held:
-		Input.action_release(action)
-	_held.clear()

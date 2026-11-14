@@ -100,11 +100,6 @@ func _build() -> void:
 	zoom_in.pressed.connect(_on_zoom_in)
 	bar.add_child(zoom_in)
 
-	var zoom_out := UI.pad_button("缩小", 16)
-	zoom_out.custom_minimum_size = Vector2(88, 44)
-	zoom_out.pressed.connect(_on_zoom_out)
-	bar.add_child(zoom_out)
-
 	var fit := UI.pad_button("居中", 16)
 	fit.custom_minimum_size = Vector2(88, 44)
 	fit.pressed.connect(_on_fit)
@@ -163,8 +158,7 @@ func _on_back() -> void:
 
 
 func _on_launch() -> void:
-	if design.size() == 0:
-		return
+	Game.ensure_design()
 	Game.save_design()
 	launch_requested.emit()
 

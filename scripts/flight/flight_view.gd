@@ -38,12 +38,14 @@ var zoom_level := 8.0
 var ship_height := 20.0
 var shake := 0.0
 var flashes: Array = []
+var yaw_input := 0.0
 
 var objectives: Array = []
 var _orbit_timer := 0.0
 
 
 func _ready() -> void:
+	Game.ensure_design()
 	bodies = Solar.build()
 	Solar.update_positions(bodies, 0.0)
 
@@ -133,7 +135,8 @@ func _build_planets() -> void:
 		sprite.z_index = -2
 		var mat := ShaderMaterial.new()
 		mat.shader = PlanetShader
-		mat.set_shader_parameter("surface_tint", b["color"])
+		var col: Color = b["color"]
+		mat.set_shader_parameter("surface_tint", Vector3(col.r, col.g, col.b))
 		sprite.material = mat
 		add_child(sprite)
 		planet_nodes.append(sprite)
@@ -224,6 +227,7 @@ func _handle_input(delta: float) -> void:
 		torque -= 3.2
 	if Input.is_action_pressed("yaw_right"):
 		torque += 3.2
+	torque += clampf(yaw_input, -1.0, 1.0) * 3.8
 	angv += torque * delta
 	if absf(torque) < 0.001 and Game.is_assist("gyro"):
 		angv = lerpf(angv, 0.0, clampf(delta * 2.0, 0.0, 1.0))
@@ -417,6 +421,20 @@ func _draw() -> void:
 		draw_arc(origin, rad, 0.0, TAU, 28, Color(1.0, 0.86, 0.55, (1.0 - k) * 0.85), 2.0 / maxf(zoom_level, 0.0001), true)
 		draw_circle(origin, rad * 0.55, Color(1.0, 0.72, 0.32, (1.0 - k) * 0.35))
 		i -= 1
+
+	# 发射台
+	if altitude() < 400.0:
+		var base := Vector2(0.0, -(R + PAD))
+		var up: Vector2 = base.normalized()
+		var right := Vector2(-up.y, up.x)
+		var p0: Vector2 = base + right * 9.0 - up * 0.5
+		var p1: Vector2 = base - right * 9.0 - up * 0.5
+		var p2: Vector2 = base - right * 9.0 - up * 3.5
+		var p3: Vector2 = base + right * 9.0 - up * 3.5
+		draw_colored_polygon(PackedVector2Array([p0, p1, p2, p3]), Color(0.19, 0.20, 0.20))
+		draw_line(p0, p1, Color(0.85, 0.64, 0.25, 0.55), 1.2)
+		draw_line(p1, p2, Color(0.10, 0.11, 0.11), 1.0)
+		draw_line(p3, p2, Color(0.10, 0.11, 0.11), 1.0)
 
 	# 地面网格（只在低空）
 	if altitude() < 3000.0:

@@ -123,3 +123,10 @@ func load_design() -> void:
 	loaded.from_dict(data)
 	if loaded.size() > 0:
 		design = loaded
+
+
+func ensure_design() -> void:
+	if design == null:
+		design = Design.new()
+	if design.size() == 0:
+		design.default_design()
