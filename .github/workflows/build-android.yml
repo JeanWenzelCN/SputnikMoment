@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 env:
-  GODOT_VERSION: "4.3-stable"
-  GODOT_TPL_DIR: "4.3.stable"
+  GODOT_VERSION: "4.4-stable"
+  GODOT_TPL_DIR: "4.4.stable"
   CMDLINE_TOOLS_URL: "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
 
 jobs:
