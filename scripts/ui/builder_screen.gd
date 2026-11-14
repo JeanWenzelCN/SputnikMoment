@@ -51,6 +51,7 @@ func _build() -> void:
 	add_child(_preview)
 	_preview.design = design
 	_preview.design_changed.connect(_refresh)
+	_preview.recenter()
 
 	var stats := VBoxContainer.new()
 	stats.add_theme_constant_override("separation", 16)
@@ -85,27 +86,37 @@ func _build() -> void:
 	add_child(bar)
 
 	var undo := UI.pad_button("撤销", 16)
-	undo.custom_minimum_size = Vector2(96, 44)
+	undo.custom_minimum_size = Vector2(88, 44)
 	undo.pressed.connect(_on_undo)
 	bar.add_child(undo)
 
 	var clear := UI.pad_button("清空", 16)
-	clear.custom_minimum_size = Vector2(96, 44)
+	clear.custom_minimum_size = Vector2(88, 44)
 	clear.pressed.connect(_on_clear)
 	bar.add_child(clear)
 
-	var sample := UI.pad_button("示例", 16)
-	sample.custom_minimum_size = Vector2(96, 44)
-	sample.pressed.connect(_on_sample)
-	bar.add_child(sample)
+	var zoom_in := UI.pad_button("放大", 16)
+	zoom_in.custom_minimum_size = Vector2(88, 44)
+	zoom_in.pressed.connect(_on_zoom_in)
+	bar.add_child(zoom_in)
+
+	var zoom_out := UI.pad_button("缩小", 16)
+	zoom_out.custom_minimum_size = Vector2(88, 44)
+	zoom_out.pressed.connect(_on_zoom_out)
+	bar.add_child(zoom_out)
+
+	var fit := UI.pad_button("居中", 16)
+	fit.custom_minimum_size = Vector2(88, 44)
+	fit.pressed.connect(_on_fit)
+	bar.add_child(fit)
 
 	var back := UI.pad_button("返回", 16)
-	back.custom_minimum_size = Vector2(96, 44)
+	back.custom_minimum_size = Vector2(88, 44)
 	back.pressed.connect(_on_back)
 	bar.add_child(back)
 
 	var go := UI.primary_button("发射", 18)
-	go.custom_minimum_size = Vector2(160, 44)
+	go.custom_minimum_size = Vector2(140, 44)
 	go.pressed.connect(_on_launch)
 	bar.add_child(go)
 
@@ -122,6 +133,18 @@ func _stat_block(key: String, value: String) -> Array:
 func _on_undo() -> void:
 	design.remove_last()
 	_refresh()
+
+
+func _on_zoom_in() -> void:
+	_preview.zoom_by(1.25)
+
+
+func _on_zoom_out() -> void:
+	_preview.zoom_by(0.8)
+
+
+func _on_fit() -> void:
+	_preview.recenter()
 
 
 func _on_clear() -> void:

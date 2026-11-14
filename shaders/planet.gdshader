@@ -6,6 +6,7 @@ uniform vec3 land_color : source_color = vec3(0.325, 0.298, 0.216);
 uniform vec3 highland_color : source_color = vec3(0.443, 0.412, 0.310);
 uniform vec3 ice_color : source_color = vec3(0.780, 0.800, 0.790);
 uniform vec3 atmo_color : source_color = vec3(0.350, 0.600, 0.720);
+uniform vec3 surface_tint : source_color = vec3(1.0, 1.0, 1.0);
 uniform float light_dir : hint_range(-3.15, 3.15) = -2.30;
 uniform float terrain_scale = 2.60;
 
@@ -77,6 +78,7 @@ void fragment() {
 
 		float grain = hash31(vec3(uv * 640.0, 3.0)) - 0.5;
 		col *= 1.0 + grain * 0.045;
+		col = mix(col, col * surface_tint * 1.9, 0.88);
 
 		COLOR = vec4(col, 1.0);
 	}

@@ -1,5 +1,5 @@
 extends Node2D
-## 飞行场景。自身承担视图变换（不做大坐标相机），保证火箭始终在屏幕上。
+## 飞行场景：太阳系多天体、固定缩放 + 手动缩放、级间分离特效、目标清单。
 
 signal exit_requested
 
@@ -7,20 +7,20 @@ const Vehicle := preload("res://scripts/flight/vehicle.gd")
 const HudScript := preload("res://scripts/flight/hud.gd")
 const Debris := preload("res://scripts/flight/debris.gd")
 const Orbit := preload("res://scripts/orbit.gd")
+const Solar := preload("res://scripts/data/solar.gd")
 const PlanetShader := preload("res://shaders/planet.gdshader")
 const StarfieldShader := preload("res://shaders/starfield.gdshader")
 
-const R := 600000.0
-const MU := 9.80665 * 600000.0 * 600000.0
-const ATMO := 70000.0
-const PAD := 6.0
+const PAD := 8.0
 const WARPS := [1, 5, 20, 100]
+const START_BODY := "earth"
 
+var bodies: Array = []
+var planet_nodes: Array = []
 var vehicle = null
 var hud = null
-var planet: Sprite2D
 
-var pos := Vector2(0.0, -(R + PAD))
+var pos := Vector2(0.0, -608008.0)
 var vel := Vector2.ZERO
 var rot := 0.0
 var angv := 0.0
@@ -32,20 +32,26 @@ var warp_index := 0
 var map_visible := false
 var orbit_el := {}
 var status_text := ""
+var current_body_id := START_BODY
 
-var view_scale := 6.0
-var focus := Vector2.ZERO
+var zoom_level := 8.0
 var ship_height := 20.0
+var shake := 0.0
+var flashes: Array = []
 
+var objectives: Array = []
 var _orbit_timer := 0.0
 
 
 func _ready() -> void:
+	bodies = Solar.build()
+	Solar.update_positions(bodies, 0.0)
+
 	_build_backdrop()
-	_build_planet()
+	_build_planets()
 
 	vehicle = Vehicle.new()
-	vehicle.z_index = 2
+	vehicle.z_index = 5
 	add_child(vehicle)
 	vehicle.setup(Game.design)
 	vehicle.position = pos
@@ -58,10 +64,44 @@ func _ready() -> void:
 	hud.bind(self)
 	hud.exit_requested.connect(_on_exit)
 
-	orbit_el = Orbit.elements(pos, vel)
 	ship_height = maxf(vehicle.total_height(), 6.0)
-	view_scale = 720.0 / (ship_height * 3.2)
+	zoom_level = 720.0 / (ship_height * 3.2)
+
+	objectives = [
+		{"text": "离开地面 1 km", "done": false},
+		{"text": "到达 100 km 高度", "done": false},
+		{"text": "建立环绕轨道", "done": false},
+		{"text": "接近月球", "done": false},
+		{"text": "在其他天体着陆", "done": false},
+	]
+
+	orbit_el = Orbit.elements(pos - body_pos(START_BODY), vel, body_mu(START_BODY))
 	_update_view(1.0)
+
+
+func body_pos(id: String) -> Vector2:
+	for b in bodies:
+		if String(b["id"]) == id:
+			return b["pos"]
+	return Vector2.ZERO
+
+
+func body_mu(id: String) -> float:
+	for b in bodies:
+		if String(b["id"]) == id:
+			return float(b["mu"])
+	return 1.0
+
+
+func get_body(id: String) -> Dictionary:
+	for b in bodies:
+		if String(b["id"]) == id:
+			return b
+	return {}
+
+
+func dominant_body() -> Dictionary:
+	return Solar.dominant(bodies, pos)
 
 
 func _build_backdrop() -> void:
@@ -79,24 +119,37 @@ func _build_backdrop() -> void:
 	layer.add_child(stars)
 
 
-func _build_planet() -> void:
+func _build_planets() -> void:
 	var img := Image.create(2, 2, false, Image.FORMAT_RGBA8)
 	img.fill(Color(1.0, 1.0, 1.0, 1.0))
 	var tex := ImageTexture.create_from_image(img)
 
-	planet = Sprite2D.new()
-	planet.texture = tex
-	planet.centered = true
-	planet.position = Vector2.ZERO
-	planet.scale = Vector2(R * 1.4, R * 1.4)
-	planet.z_index = -2
-	var mat := ShaderMaterial.new()
-	mat.shader = PlanetShader
-	planet.material = mat
-	add_child(planet)
+	for b in bodies:
+		var sprite := Sprite2D.new()
+		sprite.texture = tex
+		sprite.centered = true
+		var radius: float = float(b["radius"])
+		sprite.scale = Vector2(radius * 1.4, radius * 1.4)
+		sprite.z_index = -2
+		var mat := ShaderMaterial.new()
+		mat.shader = PlanetShader
+		mat.set_shader_parameter("surface_tint", b["color"])
+		sprite.material = mat
+		add_child(sprite)
+		planet_nodes.append(sprite)
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMagnifyGesture:
+		zoom_level = clampf(zoom_level * float(event.factor), 0.00002, 80.0)
+		return
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			zoom_in()
+			return
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			zoom_out()
+			return
 	if event.is_action_pressed("back"):
 		_on_exit()
 	elif event.is_action_pressed("stage"):
@@ -107,6 +160,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_map()
 
 
+func zoom_in() -> void:
+	zoom_level = clampf(zoom_level * 1.6, 0.00002, 80.0)
+
+
+func zoom_out() -> void:
+	zoom_level = clampf(zoom_level / 1.6, 0.00002, 80.0)
+
+
 func _physics_process(delta: float) -> void:
 	if not alive:
 		return
@@ -115,16 +176,18 @@ func _physics_process(delta: float) -> void:
 	vehicle.throttle = throttle
 
 	var warp: int = int(WARPS[warp_index])
-	if altitude() < ATMO and warp > 5:
-		warp = 5
-	var total := delta * float(warp)
-	var steps := clampi(int(ceil(total / 0.04)), 1, 90)
-	var dt := total / float(steps)
+	var total: float = delta * float(warp)
+	var steps: int = clampi(int(ceil(total / 0.04)), 1, 90)
+	var dt: float = total / float(steps)
 	for i in range(steps):
 		_step(dt)
 	elapsed += total
 
-	if pos.length() > R + PAD + 0.6:
+	Solar.update_positions(bodies, elapsed)
+	for i in range(bodies.size()):
+		planet_nodes[i].position = Vector2(bodies[i]["pos"])
+
+	if distance_to_surface() > 1.0:
 		landed = false
 
 	vehicle.position = pos
@@ -135,9 +198,16 @@ func _physics_process(delta: float) -> void:
 	_orbit_timer += delta
 	if _orbit_timer >= 0.2:
 		_orbit_timer = 0.0
-		orbit_el = Orbit.elements(pos, vel)
+		_refresh_orbit()
+		_check_objectives()
 
 	queue_redraw()
+
+
+func _refresh_orbit() -> void:
+	var dom: Dictionary = dominant_body()
+	current_body_id = String(dom["id"])
+	orbit_el = Orbit.elements(pos - Vector2(dom["pos"]), vel, float(dom["mu"]))
 
 
 func _handle_input(delta: float) -> void:
@@ -162,8 +232,12 @@ func _handle_input(delta: float) -> void:
 
 
 func _step(dt: float) -> void:
-	var r: float = maxf(R + 1.0, pos.length())
-	var accel: Vector2 = -pos.normalized() * (MU / (r * r))
+	var dom: Dictionary = dominant_body()
+	var center: Vector2 = dom["pos"]
+	var radius: float = float(dom["radius"])
+	var rel: Vector2 = pos - center
+	var r: float = maxf(rel.length(), radius * 0.3)
+	var accel: Vector2 = -rel.normalized() * (float(dom["mu"]) / (r * r))
 
 	var thrust: float = vehicle.current_thrust()
 	var fuel_ok: bool = Game.is_cheat("infinite_fuel") or vehicle.current_fuel() > 0.0
@@ -174,8 +248,9 @@ func _step(dt: float) -> void:
 		accel += Vector2.UP.rotated(rot) * (force / vehicle.mass())
 		vehicle.burn(dt)
 
-	var alt: float = r - R
-	if alt < ATMO and alt > 0.0:
+	var alt: float = rel.length() - radius
+	var atmo: float = float(dom["atmo"])
+	if atmo > 0.0 and alt < atmo and alt > 0.0:
 		var rho: float = 1.225 * exp(-alt / 8500.0)
 		var spd: float = vel.length()
 		if spd > 0.4:
@@ -184,25 +259,47 @@ func _step(dt: float) -> void:
 
 	vel += accel * dt
 	pos += vel * dt
-	_check_ground()
+	_check_surface()
 
 
-func _check_ground() -> void:
-	var floor_r: float = R + PAD
-	if pos.length() >= floor_r:
+func distance_to_surface() -> float:
+	var dom: Dictionary = dominant_body()
+	return (pos - Vector2(dom["pos"])).length() - float(dom["radius"]) - PAD
+
+
+func altitude() -> float:
+	return distance_to_surface()
+
+
+func radial_speed() -> float:
+	return vel.dot(pos.normalized())
+
+
+func speed() -> float:
+	return vel.length()
+
+
+func _check_surface() -> void:
+	for b in bodies:
+		var center: Vector2 = b["pos"]
+		var rel: Vector2 = pos - center
+		var dist: float = rel.length()
+		var floor_r: float = float(b["radius"]) + PAD
+		if dist >= floor_r:
+			continue
+		var nrm: Vector2 = rel.normalized()
+		var radial: float = vel.dot(nrm)
+		if radial < -13.0 and not Game.is_cheat("hull"):
+			_crash()
+			return
+		pos = center + nrm * floor_r
+		vel -= nrm * radial
+		if radial < -1.0:
+			landed = true
+			status_text = "在%s着陆" % String(b["name"])
+		elif vel.length() < 2.0:
+			landed = true
 		return
-	var nrm: Vector2 = pos.normalized()
-	var radial: float = vel.dot(nrm)
-	if radial < -13.0 and not Game.is_cheat("hull"):
-		_crash()
-		return
-	pos = nrm * floor_r
-	vel -= nrm * radial
-	if radial < -1.0:
-		landed = true
-		status_text = "着陆成功"
-	elif vel.length() < 2.0:
-		landed = true
 
 
 func _crash() -> void:
@@ -214,33 +311,15 @@ func _crash() -> void:
 
 
 func _update_view(delta: float) -> void:
-	var base_fov: float = maxf(ship_height * 3.2, 50.0)
-	var alt_now: float = maxf(altitude(), 0.0)
-	var fov: float = clampf(base_fov + alt_now * 1.15, base_fov, 2500000.0)
-	var target: float = 720.0 / fov
-	view_scale = lerpf(view_scale, target, clampf(delta * 3.0, 0.0, 1.0))
-
 	var vp := get_viewport_rect().size
-	var anchor := Vector2(vp.x * 0.5, vp.y * 0.58)
-	focus = pos
-	position = anchor - focus * view_scale
-	scale = Vector2(view_scale, view_scale)
+	var anchor := Vector2(vp.x * 0.5, vp.y * 0.56)
+	if shake > 0.0:
+		shake = maxf(0.0, shake - delta * 1.8)
+		var amp: float = shake * 16.0
+		anchor += Vector2(randf_range(-amp, amp), randf_range(-amp, amp))
 
-
-func planet_radius() -> float:
-	return R
-
-
-func altitude() -> float:
-	return pos.length() - R - PAD
-
-
-func radial_speed() -> float:
-	return vel.dot(pos.normalized())
-
-
-func speed() -> float:
-	return vel.length()
+	position = anchor - pos * zoom_level
+	scale = Vector2(zoom_level, zoom_level)
 
 
 func do_separate() -> void:
@@ -250,11 +329,13 @@ func do_separate() -> void:
 	if geometry.is_empty():
 		return
 	var d = Debris.new()
-	d.setup(geometry, vel + pos.normalized() * -1.5, randf_range(-0.6, 0.6))
+	d.setup(geometry, vel + pos.normalized() * -1.5, randf_range(-0.8, 0.8))
 	d.position = pos
-	d.z_index = 1
+	d.z_index = 3
 	add_child(d)
 	ship_height = maxf(vehicle.total_height(), 6.0)
+	shake = 0.5
+	flashes.append({"pos": pos, "t": 0.0, "life": 0.5})
 	status_text = "级间分离"
 
 
@@ -277,27 +358,83 @@ func toggle_full_throttle() -> void:
 		throttle = 1.0
 
 
+func current_objective() -> String:
+	for o in objectives:
+		if not bool(o["done"]):
+			return String(o["text"])
+	return "全部完成"
+
+
+func _check_objectives() -> void:
+	var dom: Dictionary = dominant_body()
+	var alt: float = altitude()
+
+	if not bool(objectives[0]["done"]) and alt > 1000.0:
+		objectives[0]["done"] = true
+		status_text = "目标完成：离开地面"
+
+	if not bool(objectives[1]["done"]) and alt > 100000.0:
+		objectives[1]["done"] = true
+		status_text = "目标完成：到达 100 km"
+
+	if not bool(objectives[2]["done"]):
+		var peri: float = float(orbit_el.get("peri", 0.0))
+		var e: float = float(orbit_el.get("e", 2.0))
+		if e < 1.0 and peri - float(dom["radius"]) > 70000.0:
+			objectives[2]["done"] = true
+			status_text = "目标完成：进入轨道"
+
+	if not bool(objectives[3]["done"]):
+		var moon: Dictionary = get_body("moon")
+		if not moon.is_empty():
+			if (pos - Vector2(moon["pos"])).length() < 1500000.0:
+				objectives[3]["done"] = true
+				status_text = "目标完成：接近月球"
+
+	if not bool(objectives[4]["done"]) and landed and String(dom["id"]) != START_BODY:
+		objectives[4]["done"] = true
+		status_text = "目标完成：异地着陆"
+
+
 func _on_exit() -> void:
 	exit_requested.emit()
 
 
 func _draw() -> void:
-	if altitude() < 4000.0:
-		var up: Vector2 = pos.normalized()
+	# 级间分离闪光
+	var i := flashes.size() - 1
+	while i >= 0:
+		var f: Dictionary = flashes[i]
+		var t: float = float(f["t"]) + 0.016
+		if t > float(f["life"]):
+			flashes.remove_at(i)
+			i -= 1
+			continue
+		flashes[i]["t"] = t
+		var k: float = t / float(f["life"])
+		var origin: Vector2 = f["pos"]
+		var rad: float = (2.0 + k * 26.0) / maxf(zoom_level, 0.0001)
+		draw_arc(origin, rad, 0.0, TAU, 28, Color(1.0, 0.86, 0.55, (1.0 - k) * 0.85), 2.0 / maxf(zoom_level, 0.0001), true)
+		draw_circle(origin, rad * 0.55, Color(1.0, 0.72, 0.32, (1.0 - k) * 0.35))
+		i -= 1
+
+	# 地面网格（只在低空）
+	if altitude() < 3000.0:
+		var up: Vector2 = (pos - Vector2(dominant_body()["pos"])).normalized()
 		var right := Vector2(-up.y, up.x)
 		var col := Color(0.60, 0.72, 0.62, 0.13)
 		var span := 2500.0
-		for i in range(-20, 21):
-			var off: Vector2 = right * (float(i) * 100.0)
+		for n in range(-20, 21):
+			var off: Vector2 = right * (float(n) * 100.0)
 			draw_line(pos + off - up * span, pos + off + up * span, col, 1.0)
-		for i in range(-10, 11):
-			var off2: Vector2 = up * (float(i) * 100.0)
+		for n in range(-10, 11):
+			var off2: Vector2 = up * (float(n) * 100.0)
 			draw_line(pos + off2 - right * span, pos + off2 + right * span, col, 1.0)
 
-	# 缩得太小时给飞船一个固定尺寸的定位标记
-	if view_scale * 12.0 < 10.0:
-		var rr: float = 10.0 / view_scale
-		var line_w: float = 1.4 / view_scale
-		draw_arc(pos, rr, 0.0, TAU, 24, Color(0.92, 0.94, 0.96, 0.85), line_w, true)
-		draw_line(pos - Vector2(rr * 1.7, 0.0), pos - Vector2(rr * 0.6, 0.0), Color(0.92, 0.94, 0.96, 0.85), line_w)
-		draw_line(pos + Vector2(rr * 0.6, 0.0), pos + Vector2(rr * 1.7, 0.0), Color(0.92, 0.94, 0.96, 0.85), line_w)
+	# 缩得太小时的飞船定位标记
+	if zoom_level * 12.0 < 10.0:
+		var rr: float = 10.0 / zoom_level
+		var lw: float = 1.4 / zoom_level
+		draw_arc(pos, rr, 0.0, TAU, 24, Color(0.92, 0.94, 0.96, 0.85), lw, true)
+		draw_line(pos - Vector2(rr * 1.7, 0.0), pos - Vector2(rr * 0.6, 0.0), Color(0.92, 0.94, 0.96, 0.85), lw)
+		draw_line(pos + Vector2(rr * 0.6, 0.0), pos + Vector2(rr * 1.7, 0.0), Color(0.92, 0.94, 0.96, 0.85), lw)
