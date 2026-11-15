@@ -129,6 +129,11 @@ func _stat_block(key: String, value: String) -> Array:
 	return [v, value_label]
 
 
+func _on_add(id: String) -> void:
+	design.add(id)
+	_refresh()
+
+
 func _on_undo() -> void:
 	design.remove_last()
 	_refresh()
