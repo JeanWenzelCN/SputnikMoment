@@ -159,7 +159,8 @@ func _build() -> void:
 	_map = MapView.new()
 	_map.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_map.visible = false
-	_map.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map.mouse_filter = Control.MOUSE_FILTER_STOP
+	_map.z_index = 10
 	add_child(_map)
 
 	_map_buttons = HBoxContainer.new()
@@ -170,6 +171,7 @@ func _build() -> void:
 	_map_buttons.offset_right = -30.0
 	_map_buttons.offset_bottom = 62.0
 	_map_buttons.visible = false
+	_map_buttons.z_index = 11
 	add_child(_map_buttons)
 
 	var full := _tap("全图", _on_full_map, 84, 40)

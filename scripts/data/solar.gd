@@ -2,9 +2,8 @@ extends RefCounted
 ## 日心太阳系：太阳在原点，行星绕太阳，月球绕地球。带 SOI 参考系切换。
 
 const BODIES := [
-	{
-		"id": "sun", "name": "太阳", "parent": "",
-		"radius": 2000000.0, "g0": 274.0, "soi": 0.0, "atmo": 0.0,
+{"id": "sun", "name": "太阳", "parent": "",
+		"radius": 400000.0, "g0": 274.0, "soi": 0.0, "atmo": 0.0,
 		"orbit_r": 0.0, "orbit_period": 0.0,
 		"color": Color(1.0, 0.78, 0.35),
 	},

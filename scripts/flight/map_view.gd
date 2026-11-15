@@ -37,7 +37,7 @@ func _pick(at: Vector2) -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.008, 0.012, 0.016, 0.94), true)
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0.012, 0.018, 0.024, 1.0), true)
 	_marks.clear()
 	if view == null:
 		return

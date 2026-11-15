@@ -1,9 +1,9 @@
 shader_type canvas_item;
 render_mode blend_mix;
 
-uniform vec3 ocean_color : source_color = vec3(0.043, 0.075, 0.086);
-uniform vec3 land_color : source_color = vec3(0.325, 0.298, 0.216);
-uniform vec3 highland_color : source_color = vec3(0.443, 0.412, 0.310);
+uniform vec3 ocean_color : source_color = vec3(0.020, 0.050, 0.080);
+uniform vec3 land_color : source_color = vec3(0.225, 0.215, 0.165);
+uniform vec3 highland_color : source_color = vec3(0.340, 0.320, 0.255);
 uniform vec3 ice_color : source_color = vec3(0.780, 0.800, 0.790);
 uniform vec3 atmo_color : source_color = vec3(0.350, 0.600, 0.720);
 uniform vec3 surface_tint : source_color = vec3(1.0, 1.0, 1.0);
@@ -86,7 +86,8 @@ void fragment() {
 
 		float grain = hash31(vec3(uv * 640.0, 3.0)) - 0.5;
 		col *= 1.0 + grain * 0.045;
-		col = mix(col, col * surface_tint * 1.9, 0.88);
+		col = col * (surface_tint * 1.9 + 0.12);
+		col = min(col, vec3(0.94));
 
 		COLOR = vec4(col, 1.0);
 	}

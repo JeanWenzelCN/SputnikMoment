@@ -45,7 +45,7 @@ var flashes: Array = []
 
 var objectives: Array = []
 var _orbit_timer := 0.0
-var _soi_timer := 0.0
+var status_timer := 0.0
 
 
 func _ready() -> void:
@@ -109,7 +109,7 @@ func _build_backdrop() -> void:
 
 	var stars := ColorRect.new()
 	stars.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	stars.color = Color(1, 1, 1, 1)
+	stars.color = Color(0.02, 0.025, 0.03, 1.0)
 	stars.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var mat := ShaderMaterial.new()
 	mat.shader = StarfieldShader
@@ -196,6 +196,11 @@ func _physics_process(delta: float) -> void:
 
 	if distance_to_surface() > 1.0:
 		landed = false
+
+	if status_text != "":
+		status_timer -= delta
+		if status_timer <= 0.0:
+			status_text = ""
 
 	vehicle.position = pos
 	vehicle.rotation = rot
@@ -338,8 +343,10 @@ func _check_surface() -> void:
 	pos = nrm * floor_r
 	vel -= nrm * radial
 	if radial < -1.0:
+		if not landed:
+			status_text = "在%s着陆" % String(ref["name"])
+			status_timer = 3.0
 		landed = true
-		status_text = "在%s着陆" % String(ref["name"])
 	elif vel.length() < 2.0:
 		landed = true
 
@@ -506,12 +513,12 @@ func _draw() -> void:
 		var up: Vector2 = pos.normalized()
 		var right := Vector2(-up.y, up.x)
 		var ebase: Vector2 = up * (float(ref["radius"]) + PAD)
-		var p0: Vector2 = ebase + right * 9.0 - up * 0.5
-		var p1: Vector2 = ebase - right * 9.0 - up * 0.5
-		var p2: Vector2 = ebase - right * 9.0 - up * 3.5
-		var p3: Vector2 = ebase + right * 9.0 - up * 3.5
-		draw_colored_polygon(PackedVector2Array([p0, p1, p2, p3]), Color(0.17, 0.18, 0.18))
-		draw_line(p0, p1, Color(0.85, 0.64, 0.25, 0.55), 1.2)
+		var p0: Vector2 = ebase + right * 7.0 - up * 0.5
+		var p1: Vector2 = ebase - right * 7.0 - up * 0.5
+		var p2: Vector2 = ebase - right * 7.0 - up * 3.0
+		var p3: Vector2 = ebase + right * 7.0 - up * 3.0
+		draw_colored_polygon(PackedVector2Array([p0, p1, p2, p3]), Color(0.13, 0.14, 0.14))
+		draw_line(p0, p1, Color(0.45, 0.47, 0.46), 1.0)
 
 	# 地面网格
 	if altitude() < 3000.0:
