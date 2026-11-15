@@ -1,11 +1,72 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="240" height="400" viewBox="0 0 240 400">
-  <rect x="7" y="7" width="226" height="386" rx="20" fill="#dadbd3"/>
-  <path d="M168 7 h65 v386 h-65 z" fill="#b6b8b0"/>
-  <rect x="7" y="7" width="226" height="386" rx="20" fill="none" stroke="#222a2d" stroke-width="8"/>
-  <rect x="7" y="104" width="226" height="48" fill="#d9463a"/>
-  <rect x="7" y="104" width="226" height="48" fill="none" stroke="#222a2d" stroke-width="6"/>
-  <line x1="7" y1="248" x2="233" y2="248" stroke="#222a2d" stroke-width="4" opacity="0.4"/>
-  <line x1="7" y1="330" x2="233" y2="330" stroke="#222a2d" stroke-width="4" opacity="0.4"/>
-  <rect x="44" y="24" width="20" height="150" fill="#ffffff" opacity="0.45" rx="10"/>
+  <defs>
+    <linearGradient id="cyl" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3f4443"/>
+      <stop offset="0.14" stop-color="#9ba19c"/>
+      <stop offset="0.36" stop-color="#e2e5dd"/>
+      <stop offset="0.56" stop-color="#c4c8c1"/>
+      <stop offset="0.80" stop-color="#7b817e"/>
+      <stop offset="1" stop-color="#343938"/>
+    </linearGradient>
+    <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8ebe3"/>
+      <stop offset="1" stop-color="#9aa09b"/>
+    </linearGradient>
+    <linearGradient id="band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e04a38"/>
+      <stop offset="0.5" stop-color="#c23528"/>
+      <stop offset="1" stop-color="#8a2016"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 罐体 -->
+  <rect x="10" y="12" width="220" height="376" rx="22" fill="url(#cyl)" stroke="#1b2123" stroke-width="6"/>
+
+  <!-- 上下端盖 -->
+  <path d="M12 34 Q120 4 228 34 L228 20 Q120 -4 12 20 Z" fill="url(#cap)" stroke="#1b2123" stroke-width="4"/>
+  <path d="M12 366 Q120 396 228 366 L228 380 Q120 400 12 380 Z" fill="#7d8380" stroke="#1b2123" stroke-width="4"/>
+
+  <!-- 环焊缝 -->
+  <g stroke="#1b2123" stroke-width="3" opacity="0.55">
+    <line x1="11" y1="96" x2="229" y2="96"/>
+    <line x1="11" y1="182" x2="229" y2="182"/>
+    <line x1="11" y1="268" x2="229" y2="268"/>
+    <line x1="11" y1="340" x2="229" y2="340"/>
+  </g>
+  <g stroke="#f2f5ee" stroke-width="1.2" opacity="0.35">
+    <line x1="11" y1="93" x2="229" y2="93"/>
+    <line x1="11" y1="179" x2="229" y2="179"/>
+    <line x1="11" y1="265" x2="229" y2="265"/>
+    <line x1="11" y1="337" x2="229" y2="337"/>
+  </g>
+
+  <!-- 铆钉 -->
+  <g fill="#eef1ea" opacity="0.85">
+    <circle cx="26" cy="88" r="2.2"/><circle cx="66" cy="88" r="2.2"/><circle cx="106" cy="88" r="2.2"/><circle cx="146" cy="88" r="2.2"/><circle cx="186" cy="88" r="2.2"/><circle cx="214" cy="88" r="2.2"/>
+    <circle cx="26" cy="104" r="2.2"/><circle cx="66" cy="104" r="2.2"/><circle cx="106" cy="104" r="2.2"/><circle cx="146" cy="104" r="2.2"/><circle cx="186" cy="104" r="2.2"/><circle cx="214" cy="104" r="2.2"/>
+    <circle cx="26" cy="174" r="2.2"/><circle cx="66" cy="174" r="2.2"/><circle cx="106" cy="174" r="2.2"/><circle cx="146" cy="174" r="2.2"/><circle cx="186" cy="174" r="2.2"/><circle cx="214" cy="174" r="2.2"/>
+    <circle cx="26" cy="260" r="2.2"/><circle cx="66" cy="260" r="2.2"/><circle cx="106" cy="260" r="2.2"/><circle cx="146" cy="260" r="2.2"/><circle cx="186" cy="260" r="2.2"/><circle cx="214" cy="260" r="2.2"/>
+    <circle cx="26" cy="332" r="2.2"/><circle cx="66" cy="332" r="2.2"/><circle cx="106" cy="332" r="2.2"/><circle cx="146" cy="332" r="2.2"/><circle cx="186" cy="332" r="2.2"/><circle cx="214" cy="332" r="2.2"/>
+  </g>
+
+  <!-- 涂装环带 -->
+  <rect x="10" y="120" width="220" height="46" fill="url(#band)"/>
+  <rect x="10" y="120" width="220" height="4" fill="#f7cfc7" opacity="0.75"/>
+  <rect x="10" y="162" width="220" height="4" fill="#5c1109" opacity="0.8"/>
+
+  <!-- 检修口 -->
+  <circle cx="120" cy="224" r="24" fill="#b6bbb4" stroke="#1b2123" stroke-width="4"/>
+  <circle cx="120" cy="224" r="15" fill="#8f9591" stroke="#1b2123" stroke-width="3"/>
+  <g fill="#e8ebe3">
+    <circle cx="120" cy="204" r="2.4"/><circle cx="120" cy="244" r="2.4"/>
+    <circle cx="100" cy="224" r="2.4"/><circle cx="140" cy="224" r="2.4"/>
+  </g>
+
+  <!-- 纵向焊缝 -->
+  <line x1="176" y1="40" x2="176" y2="360" stroke="#1b2123" stroke-width="2.5" opacity="0.35"/>
+
+  <!-- 高光 -->
+  <rect x="52" y="44" width="20" height="300" rx="10" fill="#ffffff" opacity="0.22"/>
+  <rect x="80" y="44" width="6" height="300" rx="3" fill="#ffffff" opacity="0.10"/>
 </svg>

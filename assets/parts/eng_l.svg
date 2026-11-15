@@ -1,8 +1,90 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="280" height="240" viewBox="0 0 280 240">
-  <rect x="12" y="6" width="256" height="46" rx="10" fill="#c9cbc3" stroke="#222a2d" stroke-width="8"/>
-  <rect x="40" y="52" width="200" height="56" fill="#b0b3ac" stroke="#222a2d" stroke-width="8"/>
-  <path d="M58 108 L222 108 L258 220 L22 220 Z" fill="#9ea29c" stroke="#222a2d" stroke-width="9" stroke-linejoin="round"/>
-  <path d="M70 118 L210 118 L230 172 L50 172 Z" fill="#7d817c"/>
-  <rect x="96" y="16" width="14" height="34" fill="#ffffff" opacity="0.4"/>
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#464b4a"/>
+      <stop offset="0.16" stop-color="#9aa09b"/>
+      <stop offset="0.40" stop-color="#dcdfd7"/>
+      <stop offset="0.60" stop-color="#b6bbb4"/>
+      <stop offset="0.84" stop-color="#6b7170"/>
+      <stop offset="1" stop-color="#383d3c"/>
+    </linearGradient>
+    <linearGradient id="noz" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1e2426"/>
+      <stop offset="0.18" stop-color="#565e60"/>
+      <stop offset="0.42" stop-color="#8d9597"/>
+      <stop offset="0.66" stop-color="#565e60"/>
+      <stop offset="1" stop-color="#191f21"/>
+    </linearGradient>
+    <linearGradient id="pipe" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#343a3c"/>
+      <stop offset="0.45" stop-color="#a6aca8"/>
+      <stop offset="1" stop-color="#2f3436"/>
+    </linearGradient>
+    <linearGradient id="cham" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3a3f40"/>
+      <stop offset="0.3" stop-color="#a3a9a4"/>
+      <stop offset="0.55" stop-color="#cfd3cb"/>
+      <stop offset="1" stop-color="#3d4243"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 万向支架 -->
+  <rect x="98" y="2" width="84" height="13" rx="4" fill="#c4c9c3" stroke="#1b2123" stroke-width="4"/>
+  <circle cx="110" cy="8.5" r="3.2" fill="#eef1ea"/>
+  <circle cx="170" cy="8.5" r="3.2" fill="#eef1ea"/>
+
+  <!-- 涡轮泵组 -->
+  <rect x="72" y="15" width="136" height="48" rx="9" fill="url(#body)" stroke="#1b2123" stroke-width="5"/>
+  <ellipse cx="104" cy="39" rx="17" ry="17" fill="url(#body)" stroke="#1b2123" stroke-width="4"/>
+  <ellipse cx="104" cy="39" rx="7" ry="7" fill="#2a3032" stroke="#9aa09b" stroke-width="1.6"/>
+  <ellipse cx="176" cy="39" rx="17" ry="17" fill="url(#body)" stroke="#1b2123" stroke-width="4"/>
+  <ellipse cx="176" cy="39" rx="7" ry="7" fill="#2a3032" stroke="#9aa09b" stroke-width="1.6"/>
+  <rect x="128" y="26" width="24" height="26" rx="4" fill="#8d938f" stroke="#1b2123" stroke-width="3"/>
+
+  <!-- 主燃料/氧化剂管路 -->
+  <path d="M84 60 C68 74 66 92 78 104" stroke="#151a1c" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <path d="M84 60 C68 74 66 92 78 104" stroke="url(#pipe)" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <path d="M196 60 C212 74 214 92 202 104" stroke="#151a1c" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <path d="M196 60 C212 74 214 92 202 104" stroke="url(#pipe)" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <rect x="74" y="96" width="18" height="12" rx="3" fill="#b9beb8" stroke="#1b2123" stroke-width="3"/>
+  <rect x="188" y="96" width="18" height="12" rx="3" fill="#b9beb8" stroke="#1b2123" stroke-width="3"/>
+
+  <!-- 燃烧室 -->
+  <path d="M96 62 L184 62 L196 104 L84 104 Z" fill="url(#cham)" stroke="#1b2123" stroke-width="5"/>
+  <path d="M92 82 L188 82" stroke="#1b2123" stroke-width="3" opacity="0.5"/>
+  <path d="M96 92 L184 92" stroke="#1b2123" stroke-width="2.5" opacity="0.35"/>
+
+  <!-- 钟形喷管外壁 -->
+  <path d="M84 104 C74 132 34 178 22 214 L258 214 C246 178 206 132 196 104 Z" fill="url(#noz)" stroke="#161c1e" stroke-width="6" stroke-linejoin="round"/>
+
+  <!-- 冷却管束 -->
+  <g stroke="#0f1415" stroke-width="2" opacity="0.75" fill="none">
+    <path d="M92 108 C84 138 52 180 40 210"/>
+    <path d="M104 108 C98 140 70 182 60 210"/>
+    <path d="M116 108 C112 142 90 184 82 210"/>
+    <path d="M128 108 C126 144 110 186 104 210"/>
+    <path d="M152 108 C154 144 170 186 176 210"/>
+    <path d="M164 108 C168 142 190 184 198 210"/>
+    <path d="M176 108 C182 140 210 182 220 210"/>
+    <path d="M188 108 C196 138 228 180 240 210"/>
+  </g>
+  <g stroke="#c8cec8" stroke-width="1.1" opacity="0.30" fill="none">
+    <path d="M100 110 C94 140 66 182 54 210"/>
+    <path d="M140 110 C140 144 132 186 130 210"/>
+    <path d="M180 110 C186 140 212 182 226 210"/>
+  </g>
+
+  <!-- 出口环 -->
+  <path d="M20 212 L260 212" stroke="#1a2022" stroke-width="9"/>
+  <path d="M22 208 L258 208" stroke="#b9beb8" stroke-width="2" opacity="0.5"/>
+  <ellipse cx="140" cy="220" rx="120" ry="9" fill="#0d1112" stroke="#3f4547" stroke-width="2"/>
+
+  <!-- 铭牌 -->
+  <rect x="112" y="152" width="56" height="20" rx="3" fill="#20262a" stroke="#0f1415" stroke-width="2"/>
+  <rect x="116" y="157" width="48" height="2.5" fill="#8d9597"/>
+  <rect x="116" y="162" width="34" height="2.5" fill="#8d9597"/>
+
+  <!-- 高光 -->
+  <path d="M108 106 C100 140 74 182 64 210 L86 210 C96 178 116 138 122 106 Z" fill="#ffffff" opacity="0.10"/>
 </svg>

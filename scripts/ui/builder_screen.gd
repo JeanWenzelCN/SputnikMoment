@@ -8,7 +8,6 @@ const UI := preload("res://scripts/ui/ui_kit.gd")
 const Parts := preload("res://scripts/data/parts.gd")
 const Preview := preload("res://scripts/ui/build_preview.gd")
 const PartIcon := preload("res://scripts/ui/part_icon.gd")
-const Backdrop := preload("res://scripts/ui/globe_backdrop.gd")
 
 var design = null
 var _preview = null
@@ -26,7 +25,11 @@ func _ready() -> void:
 
 
 func _build() -> void:
-	add_child(Backdrop.new())
+	var bg := ColorRect.new()
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.035, 0.043, 0.050, 1.0)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
 
 	var title := UI.label("火箭设计", 28, UI.TEXT)
 	UI.at(title, Vector2(48, 30), Vector2(300, 36))

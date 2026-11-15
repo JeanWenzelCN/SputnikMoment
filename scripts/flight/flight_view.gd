@@ -262,7 +262,11 @@ func _handle_input(delta: float) -> void:
 		angv = lerpf(angv, 0.0, clampf(delta * 2.0, 0.0, 1.0))
 
 	angv = clampf(angv, -1.7, 1.7)
-	rot += angv * delta
+	if landed and throttle < 0.02:
+		# 在地面上，没有推力时不改变姿态
+		angv = 0.0
+	else:
+		rot += angv * delta
 
 
 func sas_target_angle() -> float:
