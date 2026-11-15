@@ -47,6 +47,7 @@ func _build() -> void:
 	for id in Parts.PALETTE_ORDER:
 		var icon := PartIcon.new()
 		icon.setup(String(id))
+		icon.tapped.connect(_on_add)
 		list.add_child(icon)
 
 	_preview = Preview.new()

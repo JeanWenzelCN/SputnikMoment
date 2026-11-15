@@ -1,12 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="180" height="200" viewBox="0 0 180 200">
-  <path d="M90 8 C114 34 138 74 146 118 L146 190 L34 190 L34 118 C42 74 66 34 90 8 Z" fill="#d9dad2"/>
-  <path d="M112 20 C130 52 142 86 146 118 L146 190 L112 190 Z" fill="#b5b7af"/>
-  <path d="M90 8 C114 34 138 74 146 118 L146 190 L34 190 L34 118 C42 74 66 34 90 8 Z" fill="none" stroke="#222a2d" stroke-width="7" stroke-linejoin="round"/>
-  <path d="M40 156 L140 156 L140 190 L40 190 Z" fill="#7d6a54"/>
-  <path d="M40 156 L140 156" stroke="#222a2d" stroke-width="6"/>
-  <rect x="58" y="58" width="64" height="52" rx="10" fill="#2d4c5c" stroke="#222a2d" stroke-width="6"/>
-  <path d="M68 74 C80 64 100 64 112 74" stroke="#8fc3d8" stroke-width="6" fill="none" stroke-linecap="round"/>
-  <rect x="76" y="124" width="28" height="24" rx="4" fill="#9aa0a0" stroke="#222a2d" stroke-width="5"/>
-  <rect x="54" y="30" width="14" height="86" fill="#ffffff" opacity="0.45" rx="7"/>
+  <defs>
+    <linearGradient id="hull" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3c4140"/>
+      <stop offset="0.18" stop-color="#9aa09b"/>
+      <stop offset="0.4" stop-color="#e5e8e0"/>
+      <stop offset="0.62" stop-color="#c0c4bd"/>
+      <stop offset="0.85" stop-color="#747a77"/>
+      <stop offset="1" stop-color="#333837"/>
+    </linearGradient>
+    <linearGradient id="heat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6d5236"/>
+      <stop offset="0.5" stop-color="#43301f"/>
+      <stop offset="1" stop-color="#251a11"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2b5670"/>
+      <stop offset="0.55" stop-color="#17323f"/>
+      <stop offset="1" stop-color="#0d1c23"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 外形 -->
+  <path d="M90 6 C112 30 136 68 144 110 L144 190 L36 190 L36 110 C44 68 68 30 90 6 Z" fill="url(#hull)" stroke="#191f21" stroke-width="6" stroke-linejoin="round"/>
+
+  <!-- 隔热底 -->
+  <path d="M36 148 L144 148 L144 190 L36 190 Z" fill="url(#heat)"/>
+  <path d="M36 148 L144 148" stroke="#120c07" stroke-width="4"/>
+  <path d="M36 166 L144 166" stroke="#120c07" stroke-width="2.5" opacity="0.7"/>
+  <path d="M36 178 L144 178" stroke="#120c07" stroke-width="2.5" opacity="0.5"/>
+
+  <!-- 结构分割线 -->
+  <path d="M40 112 C60 118 120 118 140 112" stroke="#191f21" stroke-width="2.6" opacity="0.55" fill="none"/>
+  <path d="M90 6 L90 148" stroke="#191f21" stroke-width="2" opacity="0.22"/>
+
+  <!-- 舷窗 -->
+  <ellipse cx="90" cy="62" rx="26" ry="22" fill="#191f21"/>
+  <ellipse cx="90" cy="62" rx="22" ry="18" fill="url(#glass)"/>
+  <ellipse cx="90" cy="62" rx="22" ry="18" fill="none" stroke="#b7bcb5" stroke-width="2"/>
+  <path d="M76 54 C84 46 100 46 108 54" stroke="#7fb2c9" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.8"/>
+  <circle cx="99" cy="70" r="3" fill="#0d1c23" opacity="0.85"/>
+
+  <!-- 舱门 -->
+  <rect x="74" y="100" width="32" height="34" rx="5" fill="#a9aea8" stroke="#191f21" stroke-width="3.5"/>
+  <rect x="80" y="107" width="20" height="12" rx="2" fill="#8d938f" stroke="#191f21" stroke-width="2"/>
+  <circle cx="96" cy="128" r="2.6" fill="#e8ebe3"/>
+
+  <!-- 铆钉 -->
+  <g fill="#eef1ea" opacity="0.9">
+    <circle cx="56" cy="128" r="2.4"/><circle cx="124" cy="128" r="2.4"/>
+    <circle cx="52" cy="140" r="2.4"/><circle cx="128" cy="140" r="2.4"/>
+    <circle cx="64" cy="34" r="2.2"/><circle cx="116" cy="34" r="2.2"/>
+  </g>
+
+  <!-- 顶部天线 -->
+  <line x1="90" y1="6" x2="90" y2="-2" stroke="#b7bcb5" stroke-width="2.4"/>
+  <circle cx="90" cy="-2" r="2.6" fill="#d9463a"/>
+
+  <!-- 高光 -->
+  <path d="M62 40 C74 24 88 14 90 8 C86 30 70 60 64 96 L54 96 C56 74 58 54 62 40 Z" fill="#ffffff" opacity="0.20"/>
 </svg>

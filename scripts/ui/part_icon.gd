@@ -4,9 +4,19 @@ extends Control
 const UI := preload("res://scripts/ui/ui_kit.gd")
 const Parts := preload("res://scripts/data/parts.gd")
 
+signal tapped(id: String)
+
 var part_id := ""
 var _hover := false
 var _accent := false
+var _press_pos := Vector2.ZERO
+
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch and event.pressed:
+		_press_pos = event.position
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_press_pos = event.position
 
 
 func setup(id: String, accent: bool = false) -> void:
@@ -73,3 +83,16 @@ func _get_drag_data(_at_position: Vector2):
 		preview.modulate = Color(1, 1, 1, 0.85)
 		set_drag_preview(preview)
 	return {"part": part_id}
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_MOUSE_EXIT:
+		_hover = false
+		queue_redraw()
+
+
+## 点击也可以直接添加（触摸端拖拽不稳时的兜底）。
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch and not event.pressed:
+		if event.position.distance_to(_press_pos) < 24.0:
+			tapped.emit(part_id)
