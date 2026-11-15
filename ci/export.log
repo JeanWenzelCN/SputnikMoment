@@ -1,0 +1,314 @@
+WorkerThreadPool: 4 threads, 3 max low-priority.
+Godot Engine v4.4.stable.official.4c311cbee - https://godotengine.org
+TextServer: Added interface "Dummy"
+TextServer: Added interface "ICU / HarfBuzz / Graphite (Built-in)"
+JoypadLinux: udev enabled and loaded successfully.
+Using "default" pen tablet driver...
+
+TextServer: Primary interface set to: "ICU / HarfBuzz / Graphite (Built-in)".
+CORE API HASH: 3954330213
+EDITOR API HASH: 1116905369
+Loading resource: /home/runner/.config/godot/editor_settings-4.4.tres
+EditorSettings: Load OK!
+EditorTheme: Generating new theme for the config '66886095'.
+EditorTheme: Generating new icons.
+EditorTheme: Generating new fonts.
+EditorTheme: Generating new styles.
+Loading resource: /home/runner/.cache/godot/editor_doc_cache-4.4.res
+Loaded system CA certificates
+first_scan_filesystem: begin: Project initialization steps: 5
+	first_scan_filesystem: step 0: Scanning file structure...
+	first_scan_filesystem: step 1: Loading global class names...
+	first_scan_filesystem: step 2: Verifying GDExtensions...
+	first_scan_filesystem: step 3: Creating autoload scripts...
+Loading resource: res://scripts/game.gd
+Loading resource: res://scripts/keys.gd
+	first_scan_filesystem: step 4: Initializing plugins...
+	first_scan_filesystem: step 5: Starting file scan...
+first_scan_filesystem: end
+export: begin: Exporting for Android steps: 105
+Exporting for Android...
+- debug build: true
+- export path: /home/runner/work/SputnikMoment/SputnikMoment/build/SputnikMoment.apk
+- export format: 0
+- sign build: true
+- gradle build enabled: true
+- apk expansion enabled: false
+- enabled abis: arm64-v8a
+- export filter: 0
+- include filter: 
+- exclude filter: 
+Loading regular icon from 
+- falling back to project icon: res://icon.svg
+Loading resource: res://icon.svg
+Loading resource: res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex
+Loading adaptive foreground icon from 
+- falling back to using the regular icon
+0 param: --xr_mode_regular
+1 param: --xr-mode
+2 param: off
+3 param: --fullscreen
+Starting gradle build...
+Checking build version...
+- build version: 4.4.stable
+Java sdk path: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64
+Android sdk path: /home/runner/android-sdk
+Creating strings resources for supported locales for project Sputnik Moment
+Processing launcher icon for dimension 192 into res/mipmap-xxxhdpi-v4/icon.png
+Processing launcher adaptive icon p_foreground for dimension 432 into res/mipmap-xxxhdpi-v4/icon_foreground.png
+Processing launcher icon for dimension 144 into res/mipmap-xxhdpi-v4/icon.png
+Processing launcher adaptive icon p_foreground for dimension 324 into res/mipmap-xxhdpi-v4/icon_foreground.png
+Processing launcher icon for dimension 96 into res/mipmap-xhdpi-v4/icon.png
+Processing launcher adaptive icon p_foreground for dimension 216 into res/mipmap-xhdpi-v4/icon_foreground.png
+Processing launcher icon for dimension 72 into res/mipmap-hdpi-v4/icon.png
+Processing launcher adaptive icon p_foreground for dimension 162 into res/mipmap-hdpi-v4/icon_foreground.png
+Processing launcher icon for dimension 48 into res/mipmap-mdpi-v4/icon.png
+Processing launcher adaptive icon p_foreground for dimension 108 into res/mipmap-mdpi-v4/icon_foreground.png
+Processing launcher icon for dimension 192 into res/mipmap/icon.png
+Processing launcher adaptive icon p_foreground for dimension 432 into res/mipmap/icon_foreground.png
+Building temporary manifest...
+Storing manifest into res://android/build/src/debug/AndroidManifest.xml: 
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <supports-screens 
+        tools:node="replace"
+        android:smallScreens="true"
+        android:normalScreens="true"
+        android:largeScreens="true"
+        android:xlargeScreens="true" />
+    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
+    <application android:label="@string/godot_project_name_string"
+        android:allowBackup="false"
+        android:icon="@mipmap/icon"
+        android:isGame="true"
+        android:hasFragileUserData="false"
+        android:requestLegacyExternalStorage="false"
+        android:appCategory="game"
+        tools:replace="android:allowBackup,android:appCategory,android:isGame,android:hasFragileUserData,android:requestLegacyExternalStorage"
+        tools:ignore="GoogleAppIndexingWarning">
+
+        <activity android:name=".GodotApp" tools:replace="android:screenOrientation,android:excludeFromRecents,android:resizeableActivity" tools:node="mergeOnlyAttributes" android:excludeFromRecents="false" android:screenOrientation="landscape" android:resizeableActivity="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+
+Successfully modified res://android/build/res/values/themes.xml: 
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+	<style name="GodotAppMainTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+		<item name="android:windowDrawsSystemBarBackgrounds">false</item>
+		<item name="android:windowSwipeToDismiss">false</item>
+	</style>
+
+	<style name="GodotAppSplashTheme" parent="Theme.SplashScreen">
+		<!-- Set the splash screen background, animated icon, and animation
+   duration. -->
+		<item name="android:windowSplashScreenBackground">@mipmap/icon_background</item>
+
+		<!-- Use windowSplashScreenAnimatedIcon to add a drawable or an animated
+			 drawable. One of these is required. -->
+		<item name="windowSplashScreenAnimatedIcon">@mipmap/icon_foreground</item>
+
+		<!-- Set the theme of the Activity that directly follows your splash
+		screen. This is required. -->
+		<item name="postSplashScreenTheme">@style/GodotAppMainTheme</item>
+	</style>
+</resources>
+
+Clearing APK assets directory...
+Removing previously installed libraries...
+No previously installed libraries found
+Exporting project files...
+Saving project files from res://.godot/imported/chute.svg-56dd1efde602c1d9798b9db216715055.ctex into res://android/build/assets/.godot/imported/chute.svg-56dd1efde602c1d9798b9db216715055.ctex
+Saving project files from res://assets/parts/chute.svg.import into res://android/build/assets/assets/parts/chute.svg.import
+Saving project files from res://.godot/imported/eng_l.svg-7b8e8dbf8b0c1571438c0ba0c0db7598.ctex into res://android/build/assets/.godot/imported/eng_l.svg-7b8e8dbf8b0c1571438c0ba0c0db7598.ctex
+Saving project files from res://assets/parts/eng_l.svg.import into res://android/build/assets/assets/parts/eng_l.svg.import
+Saving project files from res://.godot/imported/eng_m.svg-7525c1ba84716437e1a8b0197f1e0290.ctex into res://android/build/assets/.godot/imported/eng_m.svg-7525c1ba84716437e1a8b0197f1e0290.ctex
+Saving project files from res://assets/parts/eng_m.svg.import into res://android/build/assets/assets/parts/eng_m.svg.import
+Saving project files from res://.godot/imported/eng_s.svg-5a519006def8cf822644f2510cc68c73.ctex into res://android/build/assets/.godot/imported/eng_s.svg-5a519006def8cf822644f2510cc68c73.ctex
+Saving project files from res://assets/parts/eng_s.svg.import into res://android/build/assets/assets/parts/eng_s.svg.import
+Saving project files from res://.godot/imported/legs.svg-68e272ff7cd7b094eee64b2e52cf96bf.ctex into res://android/build/assets/.godot/imported/legs.svg-68e272ff7cd7b094eee64b2e52cf96bf.ctex
+Saving project files from res://assets/parts/legs.svg.import into res://android/build/assets/assets/parts/legs.svg.import
+Saving project files from res://.godot/imported/pod.svg-7dbe2675e98fcdbb2bf38325878ee8b5.ctex into res://android/build/assets/.godot/imported/pod.svg-7dbe2675e98fcdbb2bf38325878ee8b5.ctex
+Saving project files from res://assets/parts/pod.svg.import into res://android/build/assets/assets/parts/pod.svg.import
+Saving project files from res://.godot/imported/sep.svg-04d7f13f7069620a26e98bab2b280324.ctex into res://android/build/assets/.godot/imported/sep.svg-04d7f13f7069620a26e98bab2b280324.ctex
+Saving project files from res://assets/parts/sep.svg.import into res://android/build/assets/assets/parts/sep.svg.import
+Saving project files from res://.godot/imported/tank_l.svg-a9d3777adc01759ec862f343d70ae122.ctex into res://android/build/assets/.godot/imported/tank_l.svg-a9d3777adc01759ec862f343d70ae122.ctex
+Saving project files from res://assets/parts/tank_l.svg.import into res://android/build/assets/assets/parts/tank_l.svg.import
+Saving project files from res://.godot/imported/tank_m.svg-f45c8ca69a99ef9569166d0e0a4ccbf9.ctex into res://android/build/assets/.godot/imported/tank_m.svg-f45c8ca69a99ef9569166d0e0a4ccbf9.ctex
+Saving project files from res://assets/parts/tank_m.svg.import into res://android/build/assets/assets/parts/tank_m.svg.import
+Saving project files from res://.godot/imported/tank_s.svg-5d2d00b9908ee7dea0ddea57b0ba798f.ctex into res://android/build/assets/.godot/imported/tank_s.svg-5d2d00b9908ee7dea0ddea57b0ba798f.ctex
+Saving project files from res://assets/parts/tank_s.svg.import into res://android/build/assets/assets/parts/tank_s.svg.import
+Loading resource: res://ci/editor_settings.tres
+Saving project files from res://.godot/exported/133200997/export-0a1abb588263020ebbaa708abe2fec5f-editor_settings.res into res://android/build/assets/.godot/exported/133200997/export-0a1abb588263020ebbaa708abe2fec5f-editor_settings.res
+Loading resource: res://scenes/Main.tscn
+Loading resource: res://scripts/main.gd
+Loading resource: res://shaders/planet.gdshader
+Loading resource: res://shaders/starfield.gdshader
+Saving project files from res://.godot/exported/133200997/export-4a24720ee5e787dbe30abc634fa3679d-Main.scn into res://android/build/assets/.godot/exported/133200997/export-4a24720ee5e787dbe30abc634fa3679d-Main.scn
+Saving project files from res://scripts/core/astro.gdc into res://android/build/assets/scripts/core/astro.gdc
+Saving project files from res://scripts/data/design.gdc into res://android/build/assets/scripts/data/design.gdc
+Saving project files from res://scripts/data/parts.gdc into res://android/build/assets/scripts/data/parts.gdc
+Saving project files from res://scripts/data/solar.gdc into res://android/build/assets/scripts/data/solar.gdc
+Saving project files from res://scripts/flight/debris.gdc into res://android/build/assets/scripts/flight/debris.gdc
+Saving project files from res://scripts/flight/flight_view.gdc into res://android/build/assets/scripts/flight/flight_view.gdc
+Saving project files from res://scripts/flight/hud.gdc into res://android/build/assets/scripts/flight/hud.gdc
+Saving project files from res://scripts/flight/map_view.gdc into res://android/build/assets/scripts/flight/map_view.gdc
+Saving project files from res://scripts/flight/vehicle.gdc into res://android/build/assets/scripts/flight/vehicle.gdc
+Saving project files from res://scripts/ui/builder_screen.gdc into res://android/build/assets/scripts/ui/builder_screen.gdc
+Saving project files from res://scripts/ui/build_preview.gdc into res://android/build/assets/scripts/ui/build_preview.gdc
+Saving project files from res://scripts/ui/globe_backdrop.gdc into res://android/build/assets/scripts/ui/globe_backdrop.gdc
+Saving project files from res://scripts/ui/menu_screen.gdc into res://android/build/assets/scripts/ui/menu_screen.gdc
+Saving project files from res://scripts/ui/part_icon.gdc into res://android/build/assets/scripts/ui/part_icon.gdc
+Saving project files from res://scripts/ui/settings_panel.gdc into res://android/build/assets/scripts/ui/settings_panel.gdc
+Saving project files from res://scripts/ui/theme_setup.gdc into res://android/build/assets/scripts/ui/theme_setup.gdc
+Saving project files from res://scripts/ui/throttle_slider.gdc into res://android/build/assets/scripts/ui/throttle_slider.gdc
+Saving project files from res://scripts/ui/ui_kit.gdc into res://android/build/assets/scripts/ui/ui_kit.gdc
+Saving project files from res://scripts/ui/virtual_stick.gdc into res://android/build/assets/scripts/ui/virtual_stick.gdc
+Saving project files from res://scripts/game.gdc into res://android/build/assets/scripts/game.gdc
+Saving project files from res://scripts/keys.gdc into res://android/build/assets/scripts/keys.gdc
+Saving project files from res://scripts/main.gdc into res://android/build/assets/scripts/main.gdc
+Saving project files from res://scripts/orbit.gdc into res://android/build/assets/scripts/orbit.gdc
+Saving project files from res://shaders/crt_grain.gdshader into res://android/build/assets/shaders/crt_grain.gdshader
+Saving project files from res://shaders/crt_mask.gdshader into res://android/build/assets/shaders/crt_mask.gdshader
+Saving project files from res://shaders/planet.gdshader into res://android/build/assets/shaders/planet.gdshader
+Saving project files from res://shaders/starfield.gdshader into res://android/build/assets/shaders/starfield.gdshader
+Saving project files from res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex into res://android/build/assets/.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex
+Saving project files from res://icon.svg.import into res://android/build/assets/icon.svg.import
+Saving project files from res://ci/editor_settings.tres.remap into res://android/build/assets/ci/editor_settings.tres.remap
+Saving project files from res://scenes/Main.tscn.remap into res://android/build/assets/scenes/Main.tscn.remap
+Saving project files from res://scripts/core/astro.gd.remap into res://android/build/assets/scripts/core/astro.gd.remap
+Saving project files from res://scripts/data/design.gd.remap into res://android/build/assets/scripts/data/design.gd.remap
+Saving project files from res://scripts/data/parts.gd.remap into res://android/build/assets/scripts/data/parts.gd.remap
+Saving project files from res://scripts/data/solar.gd.remap into res://android/build/assets/scripts/data/solar.gd.remap
+Saving project files from res://scripts/flight/debris.gd.remap into res://android/build/assets/scripts/flight/debris.gd.remap
+Saving project files from res://scripts/flight/flight_view.gd.remap into res://android/build/assets/scripts/flight/flight_view.gd.remap
+Saving project files from res://scripts/flight/hud.gd.remap into res://android/build/assets/scripts/flight/hud.gd.remap
+Saving project files from res://scripts/flight/map_view.gd.remap into res://android/build/assets/scripts/flight/map_view.gd.remap
+Saving project files from res://scripts/flight/vehicle.gd.remap into res://android/build/assets/scripts/flight/vehicle.gd.remap
+Saving project files from res://scripts/ui/builder_screen.gd.remap into res://android/build/assets/scripts/ui/builder_screen.gd.remap
+Saving project files from res://scripts/ui/build_preview.gd.remap into res://android/build/assets/scripts/ui/build_preview.gd.remap
+Saving project files from res://scripts/ui/globe_backdrop.gd.remap into res://android/build/assets/scripts/ui/globe_backdrop.gd.remap
+Saving project files from res://scripts/ui/menu_screen.gd.remap into res://android/build/assets/scripts/ui/menu_screen.gd.remap
+Saving project files from res://scripts/ui/part_icon.gd.remap into res://android/build/assets/scripts/ui/part_icon.gd.remap
+Saving project files from res://scripts/ui/settings_panel.gd.remap into res://android/build/assets/scripts/ui/settings_panel.gd.remap
+Saving project files from res://scripts/ui/theme_setup.gd.remap into res://android/build/assets/scripts/ui/theme_setup.gd.remap
+Saving project files from res://scripts/ui/throttle_slider.gd.remap into res://android/build/assets/scripts/ui/throttle_slider.gd.remap
+Saving project files from res://scripts/ui/ui_kit.gd.remap into res://android/build/assets/scripts/ui/ui_kit.gd.remap
+Saving project files from res://scripts/ui/virtual_stick.gd.remap into res://android/build/assets/scripts/ui/virtual_stick.gd.remap
+Saving project files from res://scripts/game.gd.remap into res://android/build/assets/scripts/game.gd.remap
+Saving project files from res://scripts/keys.gd.remap into res://android/build/assets/scripts/keys.gd.remap
+Saving project files from res://scripts/main.gd.remap into res://android/build/assets/scripts/main.gd.remap
+Saving project files from res://scripts/orbit.gd.remap into res://android/build/assets/scripts/orbit.gd.remap
+Saving project files from res://.godot/global_script_class_cache.cfg into res://android/build/assets/.godot/global_script_class_cache.cfg
+Saving project files from res://icon.svg into res://android/build/assets/icon.svg
+Saving project files from res://.godot/uid_cache.bin into res://android/build/assets/.godot/uid_cache.bin
+Saving project files from res://project.binary into res://android/build/assets/project.binary
+Storing command line flags...
+Updating JAVA_HOME environment to /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64
+Updating ANDROID_HOME environment to /home/runner/android-sdk
+Build Android project using gradle command: 
+/home/runner/work/SputnikMoment/SputnikMoment/android/build/gradlew validateJavaVersion clean assembleStandardDebug -p /home/runner/work/SputnikMoment/SputnikMoment/android/build -Paddons_directory=/home/runner/work/SputnikMoment/SputnikMoment/addons -Pexport_package_name=cn.jeanwenzel.sputnikmoment -Pexport_version_code=1 -Pexport_version_name=0.1.0 -Pexport_version_min_sdk=24 -Pexport_version_target_sdk=34 -Pexport_enabled_abis=arm64-v8a -Pplugins_local_binaries= -Pplugins_remote_binaries= -Pplugins_maven_repos= -Pperform_zipalign=true -Pperform_signing=true -Pcompress_native_libraries=false -Pgodot_editor_version=4.4.stable -Pgodot_rendering_method=gl_compatibility
+Thread exit status: 0
+
+Welcome to Gradle 8.2!
+
+Here are the highlights of this release:
+ - Kotlin DSL: new reference documentation, assignment syntax by default
+ - Kotlin DSL is now the default with Gradle init
+ - Improved suggestions to resolve errors in console output
+
+For more details see https://docs.gradle.org/8.2/release-notes.html
+
+Starting a Gradle Daemon (subsequent builds will be faster)
+
+> Configure project :
+WARNING: The option setting 'android.overridePathCheck=true' is experimental.
+The current default is 'false'.
+
+> Task :validateJavaVersion UP-TO-DATE
+> Task :clean UP-TO-DATE
+> Task :assetPacks:installTime:clean UP-TO-DATE
+> Task :preBuild UP-TO-DATE
+> Task :preStandardDebugBuild UP-TO-DATE
+> Task :mergeStandardDebugNativeDebugMetadata NO-SOURCE
+> Task :checkKotlinGradlePluginConfigurationErrors
+> Task :generateStandardDebugBuildConfig
+> Task :generateStandardDebugResValues
+> Task :checkStandardDebugAarMetadata
+> Task :mapStandardDebugSourceSetPaths
+> Task :generateStandardDebugResources
+> Task :packageStandardDebugResources
+> Task :createStandardDebugCompatibleScreenManifests
+> Task :extractDeepLinksStandardDebug
+> Task :mergeStandardDebugResources
+> Task :parseStandardDebugLocalResources
+> Task :processStandardDebugMainManifest
+> Task :processStandardDebugManifest
+> Task :javaPreCompileStandardDebug
+> Task :mergeStandardDebugShaders
+> Task :compileStandardDebugShaders NO-SOURCE
+> Task :generateStandardDebugAssets UP-TO-DATE
+> Task :mergeStandardDebugAssets
+> Task :processStandardDebugManifestForPackage
+> Task :compressStandardDebugAssets
+> Task :checkStandardDebugDuplicateClasses
+> Task :processStandardDebugResources
+> Task :mergeStandardDebugJniLibFolders
+> Task :compileStandardDebugKotlin NO-SOURCE
+> Task :compileStandardDebugJavaWithJavac
+> Task :mergeLibDexStandardDebug
+> Task :dexBuilderStandardDebug
+> Task :processStandardDebugJavaRes NO-SOURCE
+> Task :mergeProjectDexStandardDebug
+> Task :validateSigningStandardDebug
+> Task :writeStandardDebugAppMetadata
+> Task :writeStandardDebugSigningConfigVersions
+> Task :mergeStandardDebugJavaResource
+> Task :mergeStandardDebugNativeLibs
+
+> Task :stripStandardDebugDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libc++_shared.so, libgodot_android.so.
+
+> Task :desugarStandardDebugFileDependencies
+> Task :mergeStandardDebugGlobalSynthetics
+> Task :mergeExtDexStandardDebug
+> Task :packageStandardDebug
+> Task :createStandardDebugApkListingFileRedirect
+> Task :assembleStandardDebug
+
+BUILD SUCCESSFUL in 16s
+37 actionable tasks: 35 executed, 2 up-to-date
+
+Copying Android binary using gradle command: 
+/home/runner/work/SputnikMoment/SputnikMoment/android/build/gradlew copyAndRenameBinary -p /home/runner/work/SputnikMoment/SputnikMoment/android/build -Pexport_edition=standard -Pexport_build_type=debug -Pexport_format=apk -Pexport_path=file:/home/runner/work/SputnikMoment/SputnikMoment/build -Pexport_filename=SputnikMoment.apk
+Thread exit status: 0
+
+> Configure project :
+WARNING: The option setting 'android.overridePathCheck=true' is experimental.
+The current default is 'false'.
+
+> Task :copyAndRenameBinary
+
+BUILD SUCCESSFUL in 923ms
+1 actionable task: 1 executed
+
+Successfully completed Android gradle build.
+export: end
+loading_editor_layout: begin: Loading editor steps: 5
+	loading_editor_layout: step 0: Loading editor layout...
+loading_editor_layout: end
+cannot connect to daemon at tcp:5037: Connection refused
+EditorSettings: Save OK!
+XR: Clearing primary interface
+XR: Removed interface "Native mobile"
+XR: Removed interface "OpenXR"
+Orphan StringName: Node (static: 6, total: 7)
+StringName: 1 unclaimed string names at exit.

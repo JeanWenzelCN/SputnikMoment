@@ -1,0 +1,20 @@
+run: 24
+job status: success
+sha: fd7ca1241460ba93c2c9751ddebb8da4cdb6fa0f
+openjdk version "17.0.21" 2026-10-20
+OpenJDK Runtime Environment Temurin-17.0.21+9 (build 17.0.21+9)
+ANDROID_HOME=/home/runner/android-sdk
+total 32
+drwxr-xr-x  8 runner runner 4096 Nov 15 04:58 .
+drwxr-x--- 17 runner runner 4096 Nov 15 04:58 ..
+drwxr-xr-x  2 runner runner 4096 Nov 15 04:58 .temp
+drwxr-xr-x  3 runner runner 4096 Nov 15 04:58 build-tools
+drwxr-xr-x  3 runner runner 4096 Nov 15 04:58 cmdline-tools
+drwxr-xr-x  2 runner runner 4096 Nov 15 04:58 licenses
+drwxr-xr-x  3 runner runner 4096 Nov 15 04:58 platform-tools
+drwxr-xr-x  3 runner runner 4096 Nov 15 04:58 platforms
+--- build ---
+total 82572
+drwxr-xr-x  2 runner runner     4096 Nov 15 04:59 .
+drwxr-xr-x 13 runner runner     4096 Nov 15 04:59 ..
+-rw-r--r--  1 runner runner 84544572 Nov 15 04:59 SputnikMoment.apk

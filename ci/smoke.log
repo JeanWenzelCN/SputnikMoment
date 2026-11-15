@@ -1,0 +1,106 @@
+=== mode: menu ===
+Godot Engine v4.4.stable.official.4c311cbee - https://godotengine.org
+=== mode: --builder ===
+Godot Engine v4.4.stable.official.4c311cbee - https://godotengine.org
+=== mode: --flight ===
+Godot Engine v4.4.stable.official.4c311cbee - https://godotengine.org
+
+--Main Shader--
+    1 | shader_type canvas_item;
+    2 | render_mode blend_mix;
+    3 | 
+    4 | uniform vec3 ocean_color : source_color = vec3(0.020, 0.050, 0.080);
+    5 | uniform vec3 land_color : source_color = vec3(0.225, 0.215, 0.165);
+    6 | uniform vec3 highland_color : source_color = vec3(0.340, 0.320, 0.255);
+    7 | uniform vec3 ice_color : source_color = vec3(0.780, 0.800, 0.790);
+    8 | uniform vec3 atmo_color : source_color = vec3(0.350, 0.600, 0.720);
+    9 | uniform vec3 surface_tint : source_color = vec3(1.0, 1.0, 1.0);
+E  10-> uniform float smooth = 0.0;
+   11 | uniform float light_dir : hint_range(-3.15, 3.15) = -2.30;
+   12 | uniform float terrain_scale = 2.60;
+   13 | 
+   14 | float hash31(vec3 p) {
+   15 |  p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3));
+   16 |  p *= 17.0;
+   17 |  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+   18 | }
+   19 | 
+   20 | float vnoise(vec3 x) {
+   21 |  vec3 i = floor(x);
+   22 |  vec3 f = fract(x);
+   23 |  f = f * f * (3.0 - 2.0 * f);
+   24 |  float n000 = hash31(i + vec3(0.0, 0.0, 0.0));
+   25 |  float n100 = hash31(i + vec3(1.0, 0.0, 0.0));
+   26 |  float n010 = hash31(i + vec3(0.0, 1.0, 0.0));
+   27 |  float n110 = hash31(i + vec3(1.0, 1.0, 0.0));
+   28 |  float n001 = hash31(i + vec3(0.0, 0.0, 1.0));
+   29 |  float n101 = hash31(i + vec3(1.0, 0.0, 1.0));
+   30 |  float n011 = hash31(i + vec3(0.0, 1.0, 1.0));
+   31 |  float n111 = hash31(i + vec3(1.0, 1.0, 1.0));
+   32 |  float nx00 = mix(n000, n100, f.x);
+   33 |  float nx10 = mix(n010, n110, f.x);
+   34 |  float nx01 = mix(n001, n101, f.x);
+   35 |  float nx11 = mix(n011, n111, f.x);
+   36 |  return mix(mix(nx00, nx10, f.y), mix(nx01, nx11, f.y), f.z);
+   37 | }
+   38 | 
+   39 | float fbm(vec3 p) {
+   40 |  float v = 0.0;
+   41 |  float a = 0.5;
+   42 |  for (int i = 0; i < 5; i++) {
+   43 |  v += a * vnoise(p);
+   44 |  p *= 2.03;
+   45 |  a *= 0.5;
+   46 |  }
+   47 |  return v;
+   48 | }
+   49 | 
+   50 | void fragment() {
+   51 |  vec2 uv = (UV * 2.0 - 1.0) * 1.4;
+   52 |  float r = length(uv);
+   53 |  vec3 light_vec = normalize(vec3(cos(light_dir), sin(light_dir), 0.55));
+   54 | 
+   55 |  if (smooth > 0.5) {
+   56 |  if (r > 1.0) {
+   57 |  discard;
+   58 |  }
+   59 |  vec3 sn = vec3(uv, sqrt(max(0.0, 1.0 - r * r)));
+   60 |  vec3 scol = surface_tint * (0.85 + pow(sn.z, 1.6) * 0.9);
+   61 |  COLOR = vec4(scol, 1.0);
+   62 |  } else if (r > 1.0) {
+   63 |  float g = clamp((r - 1.0) / 0.06, 0.0, 1.0);
+   64 |  float a = pow(1.0 - g, 3.0) * 0.30;
+   65 |  COLOR = vec4(atmo_color, a);
+   66 |  } else {
+   67 |  vec3 n = vec3(uv, sqrt(max(0.0, 1.0 - r * r)));
+   68 |  vec3 sp = n * terrain_scale;
+   69 | 
+   70 |  float h = fbm(sp * 1.7 + vec3(11.3, 4.7, 8.1));
+   71 |  float h2 = fbm(sp * 5.1 + vec3(2.2, 9.9, 3.3));
+   72 |  float land = smoothstep(0.505, 0.590, h + h2 * 0.18);
+   73 | 
+   74 |  vec3 base = mix(ocean_color, land_color, land);
+   75 |  base = mix(base, highland_color, smoothstep(0.620, 0.860, h) * land);
+   76 | 
+   77 |  float lat = abs(n.y);
+   78 |  float ice = smoothstep(0.760, 0.945, lat + (h2 - 0.5) * 0.10);
+   79 |  base = mix(base, ice_color, ice);
+   80 | 
+   81 |  float lit = smoothstep(-0.28, 0.34, dot(n, light_vec));
+   82 |  vec3 col = base * (0.055 + 1.075 * lit);
+   83 | 
+   84 |  float rim = pow(1.0 - clamp(n.z, 0.0, 1.0), 3.0);
+   85 |  col += atmo_color * rim * 0.42 * lit;
+   86 | 
+   87 |  float grain = hash31(vec3(uv * 640.0, 3.0)) - 0.5;
+   88 |  col *= 1.0 + grain * 0.045;
+   89 |  col = col * (surface_tint * 1.9 + 0.12);
+   90 |  col = min(col, vec3(0.94));
+   91 | 
+   92 |  COLOR = vec4(col, 1.0);
+   93 |  }
+   94 | }
+SHADER ERROR: Expected an identifier or '['.
+          at: (null) (:10)
+ERROR: Shader compilation failed.
+   at: shader_set_code (servers/rendering/dummy/storage/material_storage.cpp:190)
