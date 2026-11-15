@@ -232,8 +232,12 @@ func _process(_delta: float) -> void:
 		return
 
 	var dom: Dictionary = view.dominant_body()
-	_alt.text = "%.1f km" % (view.altitude() / 1000.0)
-	_spd.text = "%.0f m/s" % view.speed()
+	var altm: float = view.altitude()
+	if altm < 10000.0:
+		_alt.text = "%.0f m" % altm
+	else:
+		_alt.text = "%.1f km" % (altm / 1000.0)
+	_spd.text = "%.2f km/s" % (view.speed() / 1000.0)
 	_vs.text = "%+.0f m/s" % view.radial_speed()
 
 	var fuel_now: float = view.vehicle.current_fuel()
@@ -243,7 +247,8 @@ func _process(_delta: float) -> void:
 	var el: Dictionary = view.orbit_el
 	var radius: float = float(dom["radius"])
 	if is_finite(float(el.get("apo", INF))):
-		_apo.text = "%.0f km" % ((float(el["apo"]) - radius) / 1000.0)
+		var apo_alt: float = (float(el["apo"]) - radius) / 1000.0
+		_apo.text = "%.0f km" % apo_alt if apo_alt < 100000.0 else "%.0f 千km" % (apo_alt / 1000.0)
 	else:
 		_apo.text = "逃逸"
 

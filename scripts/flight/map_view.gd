@@ -69,7 +69,7 @@ func _draw() -> void:
 			draw_string(font, p + Vector2(r + 5.0, 4.0), String(b["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.72, 0.76, 0.78))
 			_marks.append({"id": String(b["id"]), "p": p, "r": r})
 
-		var ship_p: Vector2 = center + Vector2(dom_pos + view.pos - Vector2(dom["pos"])) * sg
+		var ship_p: Vector2 = center + Vector2(view.rx, view.ry) * sg
 		draw_circle(ship_p, 3.5, Color(1.0, 0.86, 0.45))
 		draw_string(font, Vector2(26, 38), "太阳系", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color(0.96, 0.70, 0.30))
 	else:
@@ -114,7 +114,7 @@ func _draw() -> void:
 			draw_polyline(screen_pts, Color(0.96, 0.66, 0.26, 0.9), 1.6, true)
 
 		# 飞船
-		var ship: Vector2 = center + view.pos * sl
+		var ship: Vector2 = center + Vector2(view.rx, view.ry) * sl
 		draw_circle(ship, 4.5, Color(0.95, 0.96, 1.0))
 		draw_arc(ship, 10.0, 0.0, TAU, 24, Color(0.95, 0.96, 1.0, 0.45), 1.0, true)
 

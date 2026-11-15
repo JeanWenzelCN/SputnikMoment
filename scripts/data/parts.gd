@@ -10,19 +10,19 @@ const DEFS := {
 	},
 	"tank_s": {
 		"name": "燃料罐·小",
-		"dry": 250.0, "fuel": 2000.0, "thrust": 0.0, "isp": 0.0,
+		"dry": 250.0, "fuel": 3200.0, "thrust": 0.0, "isp": 0.0,
 		"w": 1.8, "h": 2.4, "kind": "tank",
 		"tex": "res://assets/parts/tank_s.svg",
 	},
 	"tank_m": {
 		"name": "燃料罐·中",
-		"dry": 500.0, "fuel": 4500.0, "thrust": 0.0, "isp": 0.0,
+		"dry": 500.0, "fuel": 7000.0, "thrust": 0.0, "isp": 0.0,
 		"w": 2.4, "h": 4.0, "kind": "tank",
 		"tex": "res://assets/parts/tank_m.svg",
 	},
 	"tank_l": {
 		"name": "燃料罐·大",
-		"dry": 1000.0, "fuel": 9000.0, "thrust": 0.0, "isp": 0.0,
+		"dry": 1000.0, "fuel": 15000.0, "thrust": 0.0, "isp": 0.0,
 		"w": 3.2, "h": 6.2, "kind": "tank",
 		"tex": "res://assets/parts/tank_l.svg",
 	},
